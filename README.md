@@ -1,22 +1,42 @@
-# ✨ Welcome to Embrace Your Journey
+# 🏍️ Project Habal Moto
 
 <p align="center">
-  <b>A modern web application built with a fast, scalable, and developer-friendly frontend stack.</b>
+  <b>A verified motorcycle ride-booking and dispatch platform designed to bring structure, accountability, and safety to community-based rider networks.</b>
 </p>
 
 <p align="center">
-  🚀 Built with Vite • ⚛️ React • 🟦 TypeScript • 🎨 Tailwind CSS
+  ⚡ Built with Vite • ⚛️ React • 🟦 TypeScript • 🎨 Tailwind CSS
 </p>
 
 ---
 
-## 📦 Project Info
+## 📦 Overview
 
-**Project Name:** Embrace Your Journey  
+**Project Name:** Project Habal Moto  
 **Repository:** https://github.com/Satoshinkarts/embrace-your-journey  
 
 **Description:**  
-This project is a modern web application template designed for performance, scalability, and rapid development. It uses a component-based architecture and modern tooling to provide a smooth developer and user experience.
+Project Habal Moto is a managed rider marketplace platform that connects customers with verified motorcycle riders through structured network operators. The system replaces informal social-media dispatch with a governed platform featuring rider verification, dispatch tools, booking logs, and accountability systems. :contentReference[oaicite:0]{index=0}  
+
+The platform is designed to:
+
+- Provide **fast and reliable ride booking**
+- Enable **verified rider onboarding**
+- Support **network-based dispatch and management**
+- Maintain **transparent logs, ratings, and accountability**
+- Improve safety and service consistency
+
+---
+
+## 🚀 Core Features
+
+- 📍 Ride request and booking system
+- 👤 Verified rider and network management
+- 📊 Operator dashboards and analytics
+- 🧾 Trip history and event logging
+- ⭐ Customer rating and feedback system
+- 🛰️ Real-time ride status tracking
+- 🏢 Zone-based dispatch allocation
 
 ---
 
@@ -24,24 +44,23 @@ This project is a modern web application template designed for performance, scal
 
 ### ✅ Requirements
 
-- Node.js (v18 or newer recommended)
+- Node.js (v18+ recommended)
 - npm
 - Git
-- Modern browser (Chrome, Edge, Firefox)
 
 ---
 
 ### 📥 Installation
 
 ```bash
-# ① Clone the repository
+# Clone the repository
 git clone https://github.com/Satoshinkarts/embrace-your-journey.git
 
-# ② Go into the project directory
+# Navigate into the project folder
 cd embrace-your-journey
 
-# ③ Install dependencies
+# Install dependencies
 npm install
 
-# ④ Start development server
+# Start development server
 npm run dev
