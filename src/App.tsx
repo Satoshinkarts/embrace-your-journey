@@ -6,8 +6,18 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
-import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
+
+// Customer
+import CustomerDashboard, { CustomerRides, CustomerRatings } from "./pages/customer/CustomerDashboard";
+// Rider
+import RiderDashboard, { RiderTrips, RiderEarnings } from "./pages/rider/RiderDashboard";
+// Dispatcher
+import DispatcherDashboard, { DispatcherAssign, DispatcherStats } from "./pages/dispatcher/DispatcherDashboard";
+// Operator
+import OperatorDashboard, { OperatorRiders, OperatorReports } from "./pages/operator/OperatorDashboard";
+// Admin
+import AdminDashboard, { AdminUsers, AdminAllRides, AdminRoles } from "./pages/admin/AdminDashboard";
 
 const queryClient = new QueryClient();
 
@@ -25,11 +35,47 @@ function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function RoleDashboard() {
+  const { roles } = useAuth();
+  const role = roles[0] || "customer";
+  switch (role) {
+    case "rider": return <RiderDashboard />;
+    case "dispatcher": return <DispatcherDashboard />;
+    case "operator": return <OperatorDashboard />;
+    case "admin": return <AdminDashboard />;
+    default: return <CustomerDashboard />;
+  }
+}
+
 const AppRoutes = () => (
   <Routes>
     <Route path="/" element={<Index />} />
     <Route path="/auth" element={<PublicOnlyRoute><Auth /></PublicOnlyRoute>} />
-    <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+
+    {/* Role-aware main dashboard */}
+    <Route path="/dashboard" element={<ProtectedRoute><RoleDashboard /></ProtectedRoute>} />
+
+    {/* Customer routes */}
+    <Route path="/dashboard/rides" element={<ProtectedRoute><CustomerRides /></ProtectedRoute>} />
+    <Route path="/dashboard/ratings" element={<ProtectedRoute><CustomerRatings /></ProtectedRoute>} />
+
+    {/* Rider routes */}
+    <Route path="/dashboard/trips" element={<ProtectedRoute><RiderTrips /></ProtectedRoute>} />
+    <Route path="/dashboard/earnings" element={<ProtectedRoute><RiderEarnings /></ProtectedRoute>} />
+
+    {/* Dispatcher routes */}
+    <Route path="/dashboard/assign" element={<ProtectedRoute><DispatcherAssign /></ProtectedRoute>} />
+    <Route path="/dashboard/stats" element={<ProtectedRoute><DispatcherStats /></ProtectedRoute>} />
+
+    {/* Operator routes */}
+    <Route path="/dashboard/riders" element={<ProtectedRoute><OperatorRiders /></ProtectedRoute>} />
+    <Route path="/dashboard/reports" element={<ProtectedRoute><OperatorReports /></ProtectedRoute>} />
+
+    {/* Admin routes */}
+    <Route path="/dashboard/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
+    <Route path="/dashboard/all-rides" element={<ProtectedRoute><AdminAllRides /></ProtectedRoute>} />
+    <Route path="/dashboard/roles" element={<ProtectedRoute><AdminRoles /></ProtectedRoute>} />
+
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
