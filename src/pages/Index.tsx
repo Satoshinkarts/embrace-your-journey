@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import habalLogo from "@/assets/habal-logo.png";
 import { Bike, Users, Navigation, Settings, Shield, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -52,11 +53,18 @@ export default function Index() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-12">
-      <div className="mb-10 text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
-          <Bike className="h-8 w-8 text-primary" />
-        </div>
+    <div className="relative flex min-h-screen flex-col items-center justify-center bg-background px-4 py-12 overflow-hidden">
+      {/* White glowing lights background */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute left-1/4 top-1/4 h-64 w-64 rounded-full bg-white/5 blur-[100px]" />
+        <div className="absolute right-1/4 top-1/3 h-80 w-80 rounded-full bg-white/4 blur-[120px]" />
+        <div className="absolute bottom-1/4 left-1/3 h-72 w-72 rounded-full bg-white/3 blur-[100px]" />
+        <div className="absolute right-1/3 bottom-1/3 h-56 w-56 rounded-full bg-info/5 blur-[80px]" />
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-96 w-96 rounded-full bg-white/3 blur-[150px]" />
+      </div>
+
+      <div className="relative z-10 mb-10 text-center">
+        <img src={habalLogo} alt="Habal Logo" className="mx-auto mb-4 h-28 w-28 object-contain drop-shadow-[0_0_30px_rgba(255,255,255,0.15)]" />
         <h1 className="text-4xl font-bold tracking-tight text-foreground">Habal</h1>
         <p className="mt-1 text-muted-foreground">Iloilo Verified Rider Network</p>
         <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-info/30 bg-info/5 px-3 py-1 text-xs font-medium text-info">
@@ -65,7 +73,7 @@ export default function Index() {
         </div>
       </div>
 
-      <div className="w-full max-w-lg">
+      <div className="relative z-10 w-full max-w-lg">
         <div className="grid grid-cols-2 gap-3">
           {roles.slice(0, 4).map((role) => {
             const Icon = role.icon;
