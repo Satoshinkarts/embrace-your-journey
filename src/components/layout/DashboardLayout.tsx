@@ -29,11 +29,13 @@ const roleNavItems: Record<string, NavItem[]> = {
   ],
   operator: [
     { label: "Fleet", icon: Car, path: "/dashboard" },
+    { label: "Map", icon: Navigation, path: "/dashboard/map" },
     { label: "Riders", icon: Users, path: "/dashboard/riders" },
     { label: "Reports", icon: BarChart3, path: "/dashboard/reports" },
   ],
   admin: [
     { label: "Overview", icon: BarChart3, path: "/dashboard" },
+    { label: "Map", icon: Navigation, path: "/dashboard/admin-map" },
     { label: "Users", icon: Users, path: "/dashboard/users" },
     { label: "Rides", icon: MapPin, path: "/dashboard/all-rides" },
     { label: "Roles", icon: Shield, path: "/dashboard/roles" },

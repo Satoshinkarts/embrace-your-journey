@@ -15,9 +15,9 @@ import RiderDashboard, { RiderTrips, RiderEarnings } from "./pages/rider/RiderDa
 // Dispatcher
 import DispatcherDashboard, { DispatcherAssign, DispatcherStats } from "./pages/dispatcher/DispatcherDashboard";
 // Operator
-import OperatorDashboard, { OperatorRiders, OperatorReports } from "./pages/operator/OperatorDashboard";
+import OperatorDashboard, { OperatorMap, OperatorRiders, OperatorReports } from "./pages/operator/OperatorDashboard";
 // Admin
-import AdminDashboard, { AdminUsers, AdminAllRides, AdminRoles } from "./pages/admin/AdminDashboard";
+import AdminDashboard, { AdminUsers, AdminAllRides, AdminMap, AdminRoles } from "./pages/admin/AdminDashboard";
 
 const queryClient = new QueryClient();
 
@@ -68,12 +68,14 @@ const AppRoutes = () => (
     <Route path="/dashboard/stats" element={<ProtectedRoute><DispatcherStats /></ProtectedRoute>} />
 
     {/* Operator routes */}
+    <Route path="/dashboard/map" element={<ProtectedRoute><OperatorMap /></ProtectedRoute>} />
     <Route path="/dashboard/riders" element={<ProtectedRoute><OperatorRiders /></ProtectedRoute>} />
     <Route path="/dashboard/reports" element={<ProtectedRoute><OperatorReports /></ProtectedRoute>} />
 
     {/* Admin routes */}
     <Route path="/dashboard/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
     <Route path="/dashboard/all-rides" element={<ProtectedRoute><AdminAllRides /></ProtectedRoute>} />
+    <Route path="/dashboard/admin-map" element={<ProtectedRoute><AdminMap /></ProtectedRoute>} />
     <Route path="/dashboard/roles" element={<ProtectedRoute><AdminRoles /></ProtectedRoute>} />
 
     <Route path="*" element={<NotFound />} />
