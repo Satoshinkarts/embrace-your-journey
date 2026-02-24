@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import ActiveRidesMap from "@/components/ActiveRidesMap";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -19,6 +20,10 @@ export function AdminUsers() {
 
 export function AdminAllRides() {
   return <DashboardLayout><AdminRidesView /></DashboardLayout>;
+}
+
+export function AdminMap() {
+  return <DashboardLayout fullScreen><ActiveRidesMap /></DashboardLayout>;
 }
 
 export function AdminRoles() {
