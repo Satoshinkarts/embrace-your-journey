@@ -1,34 +1,22 @@
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { motion } from "framer-motion";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Car, Users, CheckCircle, XCircle, BarChart3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function OperatorDashboard() {
-  return (
-    <DashboardLayout>
-      <FleetView />
-    </DashboardLayout>
-  );
+  return <DashboardLayout><FleetView /></DashboardLayout>;
 }
 
 export function OperatorRiders() {
-  return (
-    <DashboardLayout>
-      <RidersView />
-    </DashboardLayout>
-  );
+  return <DashboardLayout><RidersView /></DashboardLayout>;
 }
 
 export function OperatorReports() {
-  return (
-    <DashboardLayout>
-      <ReportsView />
-    </DashboardLayout>
-  );
+  return <DashboardLayout><ReportsView /></DashboardLayout>;
 }
 
 function FleetView() {
@@ -38,10 +26,7 @@ function FleetView() {
   const { data: vehicles, isLoading } = useQuery({
     queryKey: ["fleet-vehicles"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("vehicles")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("vehicles").select("*").order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -60,39 +45,36 @@ function FleetView() {
 
   return (
     <div>
-      <h2 className="mb-4 text-xl font-bold text-foreground">Fleet Management</h2>
-      {isLoading ? (
-        <p className="text-muted-foreground">Loading...</p>
-      ) : !vehicles?.length ? (
-        <Card className="border-border bg-card p-8 text-center">
+      <h2 className="mb-4 text-lg font-bold text-foreground">Fleet Management</h2>
+      {isLoading ? <LoadingSkeleton /> : !vehicles?.length ? (
+        <div className="glass-card p-8 text-center">
           <Car className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
-          <p className="text-muted-foreground">No vehicles registered yet.</p>
-        </Card>
+          <p className="text-sm text-muted-foreground">No vehicles registered</p>
+        </div>
       ) : (
-        <div className="space-y-3">
-          {vehicles.map((v) => (
-            <Card key={v.id} className="border-border bg-card p-4">
+        <div className="space-y-2.5">
+          {vehicles.map((v, i) => (
+            <motion.div key={v.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="glass-card p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-foreground">
-                    {v.make} {v.model} — {v.plate_number}
-                  </p>
+                  <p className="text-sm font-medium text-foreground">{v.make} {v.model} — {v.plate_number}</p>
                   <p className="text-xs text-muted-foreground">{v.color} {v.vehicle_type}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge className={v.is_verified ? "bg-primary/10 text-primary border-primary/30 border" : "bg-warning/10 text-warning border-warning/30 border"}>
+                  <Badge className={v.is_verified
+                    ? "bg-primary/10 text-primary border-primary/30 border text-[10px]"
+                    : "bg-warning/10 text-warning border-warning/30 border text-[10px]"
+                  }>
                     {v.is_verified ? "Verified" : "Pending"}
                   </Badge>
-                  <Button
-                    size="sm"
-                    variant="outline"
+                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0 rounded-xl"
                     onClick={() => verifyMutation.mutate({ id: v.id, verified: !v.is_verified })}
                   >
-                    {v.is_verified ? <XCircle className="h-3 w-3" /> : <CheckCircle className="h-3 w-3" />}
+                    {v.is_verified ? <XCircle className="h-4 w-4 text-destructive" /> : <CheckCircle className="h-4 w-4 text-primary" />}
                   </Button>
                 </div>
               </div>
-            </Card>
+            </motion.div>
           ))}
         </div>
       )}
@@ -104,16 +86,10 @@ function RidersView() {
   const { data: riderProfiles, isLoading } = useQuery({
     queryKey: ["operator-riders"],
     queryFn: async () => {
-      const { data: roles, error: roleErr } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "rider" as any);
+      const { data: roles, error: roleErr } = await supabase.from("user_roles").select("user_id").eq("role", "rider" as any);
       if (roleErr) throw roleErr;
       if (!roles?.length) return [];
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .in("user_id", roles.map((r) => r.user_id));
+      const { data, error } = await supabase.from("profiles").select("*").in("user_id", roles.map((r) => r.user_id));
       if (error) throw error;
       return data;
     },
@@ -121,26 +97,29 @@ function RidersView() {
 
   return (
     <div>
-      <h2 className="mb-4 text-xl font-bold text-foreground">Registered Riders</h2>
-      {isLoading ? (
-        <p className="text-muted-foreground">Loading...</p>
-      ) : !riderProfiles?.length ? (
-        <Card className="border-border bg-card p-8 text-center">
+      <h2 className="mb-4 text-lg font-bold text-foreground">Registered Riders</h2>
+      {isLoading ? <LoadingSkeleton /> : !riderProfiles?.length ? (
+        <div className="glass-card p-8 text-center">
           <Users className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
-          <p className="text-muted-foreground">No riders registered yet.</p>
-        </Card>
+          <p className="text-sm text-muted-foreground">No riders registered</p>
+        </div>
       ) : (
-        <div className="space-y-3">
-          {riderProfiles.map((r) => (
-            <Card key={r.id} className="border-border bg-card p-4">
+        <div className="space-y-2.5">
+          {riderProfiles.map((r, i) => (
+            <motion.div key={r.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="glass-card p-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-foreground">{r.full_name || "Unnamed"}</p>
-                  <p className="text-xs text-muted-foreground">{r.phone || "No phone"}</p>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-sm font-bold text-foreground">
+                    {(r.full_name || "?")[0].toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{r.full_name || "Unnamed"}</p>
+                    <p className="text-xs text-muted-foreground">{r.phone || "No phone"}</p>
+                  </div>
                 </div>
-                <p className="text-xs text-muted-foreground">Joined {new Date(r.created_at).toLocaleDateString()}</p>
+                <p className="text-[10px] text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</p>
               </div>
-            </Card>
+            </motion.div>
           ))}
         </div>
       )}
@@ -149,45 +128,36 @@ function RidersView() {
 }
 
 function ReportsView() {
-  const { data: rides } = useQuery({
-    queryKey: ["operator-reports"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("rides").select("*");
-      if (error) throw error;
-      return data;
-    },
-  });
+  const { data: rides } = useQuery({ queryKey: ["operator-reports"], queryFn: async () => { const { data, error } = await supabase.from("rides").select("*"); if (error) throw error; return data; } });
+  const { data: vehicles } = useQuery({ queryKey: ["operator-vehicle-stats"], queryFn: async () => { const { data, error } = await supabase.from("vehicles").select("*"); if (error) throw error; return data; } });
 
-  const { data: vehicles } = useQuery({
-    queryKey: ["operator-vehicle-stats"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("vehicles").select("*");
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const totalRides = rides?.length || 0;
-  const totalVehicles = vehicles?.length || 0;
-  const verified = vehicles?.filter((v) => v.is_verified).length || 0;
+  const stats = [
+    { label: "Total Rides", value: rides?.length || 0 },
+    { label: "Vehicles", value: vehicles?.length || 0 },
+    { label: "Verified", value: vehicles?.filter(v => v.is_verified).length || 0 },
+  ];
 
   return (
     <div>
-      <h2 className="mb-4 text-xl font-bold text-foreground">Reports</h2>
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card className="border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Total Rides</p>
-          <p className="text-2xl font-bold text-foreground">{totalRides}</p>
-        </Card>
-        <Card className="border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Vehicles</p>
-          <p className="text-2xl font-bold text-foreground">{totalVehicles}</p>
-        </Card>
-        <Card className="border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Verified Vehicles</p>
-          <p className="text-2xl font-bold text-primary">{verified}</p>
-        </Card>
+      <h2 className="mb-4 text-lg font-bold text-foreground">Reports</h2>
+      <div className="grid grid-cols-3 gap-3">
+        {stats.map((s, i) => (
+          <motion.div key={s.label} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.08 }} className="glass-card p-4 text-center">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{s.label}</p>
+            <p className="mt-1 text-xl font-bold text-foreground">{s.value}</p>
+          </motion.div>
+        ))}
       </div>
+    </div>
+  );
+}
+
+function LoadingSkeleton() {
+  return (
+    <div className="space-y-2.5">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="glass-card h-16 animate-pulse bg-secondary/50" />
+      ))}
     </div>
   );
 }

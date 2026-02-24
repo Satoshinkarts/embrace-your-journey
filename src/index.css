@@ -1,51 +1,56 @@
+@import "mapbox-gl/dist/mapbox-gl.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 230 15% 5%;
-    --foreground: 210 40% 92%;
+    --background: 228 20% 6%;
+    --foreground: 0 0% 95%;
 
-    --card: 230 15% 8%;
-    --card-foreground: 210 40% 92%;
+    --card: 228 18% 10%;
+    --card-foreground: 0 0% 95%;
 
-    --popover: 230 15% 8%;
-    --popover-foreground: 210 40% 92%;
+    --popover: 228 18% 10%;
+    --popover-foreground: 0 0% 95%;
 
-    --primary: 142 71% 45%;
+    --primary: 152 68% 46%;
     --primary-foreground: 0 0% 2%;
 
-    --secondary: 230 15% 12%;
-    --secondary-foreground: 210 40% 92%;
+    --secondary: 228 16% 14%;
+    --secondary-foreground: 0 0% 90%;
 
-    --muted: 230 10% 14%;
-    --muted-foreground: 215 15% 50%;
+    --muted: 228 12% 18%;
+    --muted-foreground: 220 10% 50%;
 
-    --accent: 38 92% 50%;
+    --accent: 38 95% 55%;
     --accent-foreground: 0 0% 2%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 215 30% 25%;
-    --input: 215 30% 20%;
-    --ring: 215 60% 55%;
+    --border: 225 15% 18%;
+    --input: 225 15% 16%;
+    --ring: 152 68% 46%;
 
-    --radius: 0.75rem;
+    --radius: 1rem;
 
-    --sidebar-background: 230 15% 4%;
-    --sidebar-foreground: 210 40% 85%;
-    --sidebar-primary: 142 71% 45%;
+    --sidebar-background: 228 20% 5%;
+    --sidebar-foreground: 0 0% 85%;
+    --sidebar-primary: 152 68% 46%;
     --sidebar-primary-foreground: 0 0% 2%;
-    --sidebar-accent: 230 15% 12%;
-    --sidebar-accent-foreground: 210 40% 85%;
-    --sidebar-border: 215 30% 22%;
-    --sidebar-ring: 215 60% 55%;
+    --sidebar-accent: 228 16% 14%;
+    --sidebar-accent-foreground: 0 0% 85%;
+    --sidebar-border: 225 15% 16%;
+    --sidebar-ring: 152 68% 46%;
 
-    --success: 142 71% 45%;
-    --warning: 38 92% 50%;
-    --info: 215 60% 55%;
+    --success: 152 68% 46%;
+    --warning: 38 95% 55%;
+    --info: 217 70% 60%;
+
+    --glass: 228 18% 10%;
+    --glass-border: 225 15% 22%;
   }
 }
 
@@ -56,5 +61,91 @@
 
   body {
     @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
   }
+
+  /* Mobile-optimized scrollbar */
+  ::-webkit-scrollbar {
+    width: 0px;
+    background: transparent;
+  }
+}
+
+@layer components {
+  /* Glass morphism card */
+  .glass-card {
+    @apply rounded-2xl border border-glass-border;
+    background: hsl(var(--glass) / 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  /* Pulse dot for live indicators */
+  .pulse-dot {
+    @apply relative inline-block h-2 w-2 rounded-full bg-primary;
+  }
+  .pulse-dot::before {
+    content: '';
+    @apply absolute inset-0 rounded-full bg-primary;
+    animation: pulse-ring 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  /* Safe area padding for mobile */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  /* Map overlay gradient */
+  .map-gradient-bottom {
+    background: linear-gradient(to top, hsl(var(--background)) 0%, hsl(var(--background) / 0.85) 40%, transparent 100%);
+  }
+  .map-gradient-top {
+    background: linear-gradient(to bottom, hsl(var(--background) / 0.8) 0%, transparent 100%);
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+
+/* Mapbox overrides for dark theme */
+.mapboxgl-popup-content {
+  background: hsl(228 18% 10%) !important;
+  border: 1px solid hsl(225 15% 22%) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4) !important;
+  color: hsl(0 0% 95%) !important;
+}
+.mapboxgl-popup-tip {
+  border-top-color: hsl(228 18% 10%) !important;
+}
+.mapboxgl-ctrl-group {
+  background: hsl(228 18% 10%) !important;
+  border: 1px solid hsl(225 15% 22%) !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+}
+.mapboxgl-ctrl-group button {
+  background: transparent !important;
+  border-bottom: 1px solid hsl(225 15% 22%) !important;
+}
+.mapboxgl-ctrl-group button:last-child {
+  border-bottom: none !important;
+}
+.mapboxgl-ctrl-group button span {
+  filter: invert(1) !important;
 }
