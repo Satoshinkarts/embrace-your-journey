@@ -64,8 +64,11 @@ export default function Index() {
       </div>
 
       <div className="relative z-10 mb-10 text-center">
-        <img src={habalLogo} alt="Habal Logo" className="mx-auto mb-4 h-28 w-28 object-contain drop-shadow-[0_0_30px_rgba(255,255,255,0.15)]" />
-        <h1 className="text-4xl font-bold tracking-tight text-foreground">Habal</h1>
+        <div className="relative mx-auto mb-4 h-28 w-28">
+          <div className="absolute inset-0 rounded-full bg-white/15 blur-[40px]" />
+          <div className="absolute -inset-4 rounded-full bg-white/8 blur-[60px]" />
+          <img src={habalLogo} alt="Habal Logo" className="relative h-28 w-28 object-contain" />
+        </div>
         <p className="mt-1 text-muted-foreground">Iloilo Verified Rider Network</p>
         <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-info/30 bg-info/5 px-3 py-1 text-xs font-medium text-info">
           <Zap className="h-3 w-3" />
