@@ -410,7 +410,7 @@ function BookingCard({
     }
     try {
       const res = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${mapboxToken}&limit=5&types=address,poi,place,locality`
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${mapboxToken}&limit=5&types=address,poi,place,locality&country=PH&bbox=122.4,9.4,125.1,12.7`
       );
       const data = await res.json();
       setSuggestions(data.features?.map((f: any) => ({ place_name: f.place_name, center: f.center })) || []);
