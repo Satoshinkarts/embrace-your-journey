@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -301,6 +301,7 @@ function BookRideSection() {
                 onTogglePickupMode={() => {
                   setPickupMode(pickupMode === "gps" ? "manual" : "gps");
                 }}
+                mapboxToken={mapboxToken}
               />
             )}
           </AnimatePresence>
@@ -386,7 +387,7 @@ function ActiveRideCard({ ride, onCancel, cancelling }: { ride: any; onCancel: (
 }
 
 function BookingCard({
-  pickup, locatingPickup, dropoff, dropoffInput, setDropoffInput, setDropoff, setDropoffCoords, onBook, booking, canBook, pickupMode, onTogglePickupMode,
+  pickup, locatingPickup, dropoff, dropoffInput, setDropoffInput, setDropoff, setDropoffCoords, onBook, booking, canBook, pickupMode, onTogglePickupMode, mapboxToken,
 }: {
   pickup: string; locatingPickup: boolean;
   dropoff: string; dropoffInput: string;
@@ -396,7 +397,45 @@ function BookingCard({
   onBook: () => void; booking: boolean; canBook: boolean;
   pickupMode: "gps" | "manual";
   onTogglePickupMode: () => void;
+  mapboxToken: string | null;
 }) {
+  const [suggestions, setSuggestions] = useState<Array<{ place_name: string; center: [number, number] }>>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const fetchSuggestions = useCallback(async (query: string) => {
+    if (!mapboxToken || query.length < 3) {
+      setSuggestions([]);
+      return;
+    }
+    try {
+      const res = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${mapboxToken}&limit=5&types=address,poi,place,locality`
+      );
+      const data = await res.json();
+      setSuggestions(data.features?.map((f: any) => ({ place_name: f.place_name, center: f.center })) || []);
+    } catch {
+      setSuggestions([]);
+    }
+  }, [mapboxToken]);
+
+  const handleDropoffChange = useCallback((value: string) => {
+    setDropoffInput(value);
+    setDropoff(value);
+    setDropoffCoords(null);
+    setShowSuggestions(true);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => fetchSuggestions(value), 300);
+  }, [setDropoffInput, setDropoff, setDropoffCoords, fetchSuggestions]);
+
+  const selectSuggestion = useCallback((s: { place_name: string; center: [number, number] }) => {
+    setDropoffInput(s.place_name);
+    setDropoff(s.place_name);
+    setDropoffCoords([s.center[0], s.center[1]]);
+    setSuggestions([]);
+    setShowSuggestions(false);
+  }, [setDropoffInput, setDropoff, setDropoffCoords]);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 40 }}
@@ -431,29 +470,53 @@ function BookingCard({
             </button>
           </div>
 
-          {/* Dropoff — tap map OR type */}
-          <div className="rounded-xl border border-border bg-secondary/50 p-3.5">
-            <div className="flex items-center gap-3">
-              <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-warning shadow-[0_0_6px_rgba(245,158,11,0.4)]" />
-              <div className="flex-1 min-w-0">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Dropoff</p>
-                <Input
-                  value={dropoffInput}
-                  onChange={(e) => {
-                    setDropoffInput(e.target.value);
-                    setDropoff(e.target.value);
-                    setDropoffCoords(null); // clear coords when typing manually
-                  }}
-                  placeholder="Type address or tap the map"
-                  className="h-8 border-0 bg-transparent p-0 text-sm font-medium text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0"
-                />
+          {/* Dropoff — tap map, type, or select suggestion */}
+          <div className="relative">
+            <div className="rounded-xl border border-border bg-secondary/50 p-3.5">
+              <div className="flex items-center gap-3">
+                <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-warning shadow-[0_0_6px_rgba(245,158,11,0.4)]" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Dropoff</p>
+                  <Input
+                    value={dropoffInput}
+                    onChange={(e) => handleDropoffChange(e.target.value)}
+                    onFocus={() => { if (suggestions.length) setShowSuggestions(true); }}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                    placeholder="Search address or tap the map"
+                    className="h-8 border-0 bg-transparent p-0 text-sm font-medium text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0"
+                  />
+                </div>
+                {dropoffInput && (
+                  <button onClick={() => { setDropoffInput(""); setDropoff(""); setDropoffCoords(null); setSuggestions([]); }} className="text-muted-foreground shrink-0">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
-              {dropoffInput && (
-                <button onClick={() => { setDropoffInput(""); setDropoff(""); setDropoffCoords(null); }} className="text-muted-foreground shrink-0">
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              )}
             </div>
+
+            {/* Suggestions dropdown */}
+            <AnimatePresence>
+              {showSuggestions && suggestions.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-xl border border-border bg-card shadow-lg"
+                >
+                  {suggestions.map((s, i) => (
+                    <button
+                      key={i}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => selectSuggestion(s)}
+                      className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-secondary/80 border-b border-border last:border-0"
+                    >
+                      <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
+                      <span className="text-sm text-foreground line-clamp-2">{s.place_name}</span>
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
 
