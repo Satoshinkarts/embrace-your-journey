@@ -58,20 +58,21 @@ export default function MapboxMap({
 
     if (showGeolocate && onGeolocate) {
       const geoCtrl = new mapboxgl.GeolocateControl({
-        positionOptions: { enableHighAccuracy: true },
-        trackUserLocation: false,
+        positionOptions: { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+        trackUserLocation: true,
         showUserLocation: true,
+        showAccuracyCircle: true,
       });
       map.current.addControl(geoCtrl, "top-right");
 
       geoCtrl.on("geolocate", (e: any) => {
+        onGeolocate(e.coords.longitude, e.coords.latitude);
         if (!geoFired.current) {
           geoFired.current = true;
-          onGeolocate(e.coords.longitude, e.coords.latitude);
         }
       });
 
-      // Auto-trigger geolocation after map loads
+      // Auto-trigger GPS geolocation after map loads
       map.current.on("load", () => {
         geoCtrl.trigger();
       });

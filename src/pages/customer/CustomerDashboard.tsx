@@ -135,8 +135,11 @@ function BookRideSection() {
     })();
   }, []);
 
-  // Auto-detect pickup location
+  const [pickupMode, setPickupMode] = useState<"gps" | "manual">("gps");
+
+  // GPS auto-detect pickup location
   const handleGeolocate = useCallback(async (lng: number, lat: number) => {
+    if (pickupMode !== "gps") return;
     setPickupCoords([lng, lat]);
     setLocatingPickup(false);
     if (mapboxToken) {
@@ -145,7 +148,7 @@ function BookRideSection() {
     } else {
       setPickup(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
     }
-  }, [mapboxToken]);
+  }, [mapboxToken, pickupMode]);
 
   const { data: activeRide, isLoading: loadingActive } = useQuery({
     queryKey: ["active-ride", user?.id],
@@ -206,19 +209,32 @@ function BookRideSection() {
     },
   });
 
-  // Map click sets dropoff only (pickup is auto-detected)
+  // Map click sets pickup (manual mode) or dropoff
   const handleMapClick = useCallback(async (lng: number, lat: number) => {
-    setDropoffCoords([lng, lat]);
-    if (mapboxToken) {
-      const addr = await reverseGeocode(lng, lat, mapboxToken);
-      setDropoff(addr);
-      setDropoffInput(addr);
+    if (pickupMode === "manual") {
+      setPickupCoords([lng, lat]);
+      setLocatingPickup(false);
+      if (mapboxToken) {
+        const addr = await reverseGeocode(lng, lat, mapboxToken);
+        setPickup(addr);
+      } else {
+        setPickup(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+      }
+      // After setting pickup, switch back so next tap sets dropoff
+      setPickupMode("gps");
     } else {
-      const fallback = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-      setDropoff(fallback);
-      setDropoffInput(fallback);
+      setDropoffCoords([lng, lat]);
+      if (mapboxToken) {
+        const addr = await reverseGeocode(lng, lat, mapboxToken);
+        setDropoff(addr);
+        setDropoffInput(addr);
+      } else {
+        const fallback = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+        setDropoff(fallback);
+        setDropoffInput(fallback);
+      }
     }
-  }, [mapboxToken]);
+  }, [mapboxToken, pickupMode]);
 
   const markers = [
     ...(pickupCoords ? [{ id: "pickup", lng: pickupCoords[0], lat: pickupCoords[1], color: "#22c55e", label: "You are here" }] : []),
@@ -281,6 +297,10 @@ function BookRideSection() {
                 onBook={() => bookMutation.mutate()}
                 booking={bookMutation.isPending}
                 canBook={canBook}
+                pickupMode={pickupMode}
+                onTogglePickupMode={() => {
+                  setPickupMode(pickupMode === "gps" ? "manual" : "gps");
+                }}
               />
             )}
           </AnimatePresence>
@@ -366,7 +386,7 @@ function ActiveRideCard({ ride, onCancel, cancelling }: { ride: any; onCancel: (
 }
 
 function BookingCard({
-  pickup, locatingPickup, dropoff, dropoffInput, setDropoffInput, setDropoff, setDropoffCoords, onBook, booking, canBook,
+  pickup, locatingPickup, dropoff, dropoffInput, setDropoffInput, setDropoff, setDropoffCoords, onBook, booking, canBook, pickupMode, onTogglePickupMode,
 }: {
   pickup: string; locatingPickup: boolean;
   dropoff: string; dropoffInput: string;
@@ -374,6 +394,8 @@ function BookingCard({
   setDropoff: (v: string) => void;
   setDropoffCoords: (v: [number, number] | null) => void;
   onBook: () => void; booking: boolean; canBook: boolean;
+  pickupMode: "gps" | "manual";
+  onTogglePickupMode: () => void;
 }) {
   return (
     <motion.div
@@ -386,21 +408,27 @@ function BookingCard({
         <p className="mb-4 text-lg font-bold text-foreground">Where to?</p>
 
         <div className="space-y-3">
-          {/* Pickup — auto-detected, read-only */}
-          <div className="flex w-full items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 p-3.5">
+          {/* Pickup — GPS or manual pin */}
+          <div className={`flex w-full items-center gap-3 rounded-xl border p-3.5 ${pickupMode === "manual" ? "border-warning/50 bg-warning/5" : "border-primary/30 bg-primary/5"}`}>
             <div className="h-2.5 w-2.5 rounded-full bg-primary shadow-[0_0_6px_rgba(34,197,94,0.4)]" />
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Pickup (auto-detected)</p>
-              {locatingPickup ? (
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                {pickupMode === "manual" ? "Tap map to set pickup" : "Pickup (GPS)"}
+              </p>
+              {pickupMode === "manual" && !pickup ? (
+                <p className="text-sm text-warning font-medium mt-0.5">Tap the map to pin your pickup</p>
+              ) : locatingPickup ? (
                 <div className="flex items-center gap-2 mt-0.5">
                   <Loader2 className="h-3 w-3 animate-spin text-primary" />
-                  <p className="text-sm text-muted-foreground">Detecting your location...</p>
+                  <p className="text-sm text-muted-foreground">Getting GPS location...</p>
                 </div>
               ) : (
                 <p className="truncate text-sm font-medium text-foreground">{pickup}</p>
               )}
             </div>
-            <MapPin className="h-4 w-4 text-primary shrink-0" />
+            <button onClick={onTogglePickupMode} className="shrink-0 rounded-lg border border-border bg-secondary/80 px-2 py-1 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors">
+              {pickupMode === "gps" ? "Pin" : "GPS"}
+            </button>
           </div>
 
           {/* Dropoff — tap map OR type */}
@@ -442,7 +470,7 @@ function BookingCard({
         </Button>
 
         <p className="mt-3 text-center text-[10px] text-muted-foreground">
-          Your pickup is auto-detected • Tap the map or type to set dropoff
+          GPS pickup • Tap "Pin" to set manually • Tap map for dropoff
         </p>
       </div>
     </motion.div>
