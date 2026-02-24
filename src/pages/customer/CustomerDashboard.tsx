@@ -236,6 +236,38 @@ function BookRideSection() {
     }
   }, [mapboxToken, pickupMode]);
 
+  // Fetch route when both coords are set
+  const [routeCoords, setRouteCoords] = useState<[number, number][] | undefined>(undefined);
+
+  useEffect(() => {
+    if (!mapboxToken) return;
+
+    // Use active ride coords if available, otherwise booking coords
+    const pCoords = activeRide ? (activeRide.pickup_lat && activeRide.pickup_lng ? [activeRide.pickup_lng, activeRide.pickup_lat] : null) : pickupCoords;
+    const dCoords = activeRide ? (activeRide.dropoff_lat && activeRide.dropoff_lng ? [activeRide.dropoff_lng, activeRide.dropoff_lat] : null) : dropoffCoords;
+
+    if (!pCoords || !dCoords) {
+      setRouteCoords(undefined);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(
+          `https://api.mapbox.com/directions/v5/mapbox/driving/${pCoords[0]},${pCoords[1]};${dCoords[0]},${dCoords[1]}?geometries=geojson&overview=full&access_token=${mapboxToken}`
+        );
+        const data = await res.json();
+        if (!cancelled && data.routes?.[0]?.geometry?.coordinates) {
+          setRouteCoords(data.routes[0].geometry.coordinates);
+        }
+      } catch {
+        if (!cancelled) setRouteCoords(undefined);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [mapboxToken, pickupCoords, dropoffCoords, activeRide]);
+
   const markers = [
     ...(pickupCoords ? [{ id: "pickup", lng: pickupCoords[0], lat: pickupCoords[1], color: "#22c55e", label: "You are here" }] : []),
     ...(dropoffCoords ? [{ id: "dropoff", lng: dropoffCoords[0], lat: dropoffCoords[1], color: "#f59e0b", label: "Dropoff" }] : []),
@@ -259,13 +291,13 @@ function BookRideSection() {
 
   return (
     <div className="relative flex h-[calc(100dvh-56px)] flex-col">
-      {/* Map — auto-geolocate for pickup, click for dropoff */}
       <MapboxMap
         className="absolute inset-0"
         onMapClick={!activeRide ? handleMapClick : undefined}
         onGeolocate={!activeRide ? handleGeolocate : undefined}
         showGeolocate={!activeRide}
         markers={markers}
+        routeCoords={routeCoords}
       />
 
       {/* Top overlay */}
