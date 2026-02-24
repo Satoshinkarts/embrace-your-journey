@@ -238,16 +238,17 @@ function BookRideSection() {
 
   // Fetch route when both coords are set
   const [routeCoords, setRouteCoords] = useState<[number, number][] | undefined>(undefined);
+  const [routeEstimate, setRouteEstimate] = useState<{ distanceKm: number; durationMin: number; fare: number } | null>(null);
 
   useEffect(() => {
     if (!mapboxToken) return;
 
-    // Use active ride coords if available, otherwise booking coords
     const pCoords = activeRide ? (activeRide.pickup_lat && activeRide.pickup_lng ? [activeRide.pickup_lng, activeRide.pickup_lat] : null) : pickupCoords;
     const dCoords = activeRide ? (activeRide.dropoff_lat && activeRide.dropoff_lng ? [activeRide.dropoff_lng, activeRide.dropoff_lat] : null) : dropoffCoords;
 
     if (!pCoords || !dCoords) {
       setRouteCoords(undefined);
+      setRouteEstimate(null);
       return;
     }
 
@@ -258,11 +259,17 @@ function BookRideSection() {
           `https://api.mapbox.com/directions/v5/mapbox/driving/${pCoords[0]},${pCoords[1]};${dCoords[0]},${dCoords[1]}?geometries=geojson&overview=full&access_token=${mapboxToken}`
         );
         const data = await res.json();
-        if (!cancelled && data.routes?.[0]?.geometry?.coordinates) {
-          setRouteCoords(data.routes[0].geometry.coordinates);
+        if (!cancelled && data.routes?.[0]) {
+          const route = data.routes[0];
+          setRouteCoords(route.geometry.coordinates);
+          const distanceKm = route.distance / 1000;
+          const durationMin = Math.ceil(route.duration / 60);
+          // Fare: ₱40 base + ₱10/km
+          const fare = 40 + distanceKm * 10;
+          setRouteEstimate({ distanceKm, durationMin, fare });
         }
       } catch {
-        if (!cancelled) setRouteCoords(undefined);
+        if (!cancelled) { setRouteCoords(undefined); setRouteEstimate(null); }
       }
     })();
     return () => { cancelled = true; };
@@ -334,6 +341,7 @@ function BookRideSection() {
                   setPickupMode(pickupMode === "gps" ? "manual" : "gps");
                 }}
                 mapboxToken={mapboxToken}
+                routeEstimate={routeEstimate}
               />
             )}
           </AnimatePresence>
@@ -419,7 +427,7 @@ function ActiveRideCard({ ride, onCancel, cancelling }: { ride: any; onCancel: (
 }
 
 function BookingCard({
-  pickup, locatingPickup, dropoff, dropoffInput, setDropoffInput, setDropoff, setDropoffCoords, onBook, booking, canBook, pickupMode, onTogglePickupMode, mapboxToken,
+  pickup, locatingPickup, dropoff, dropoffInput, setDropoffInput, setDropoff, setDropoffCoords, onBook, booking, canBook, pickupMode, onTogglePickupMode, mapboxToken, routeEstimate,
 }: {
   pickup: string; locatingPickup: boolean;
   dropoff: string; dropoffInput: string;
@@ -430,6 +438,7 @@ function BookingCard({
   pickupMode: "gps" | "manual";
   onTogglePickupMode: () => void;
   mapboxToken: string | null;
+  routeEstimate: { distanceKm: number; durationMin: number; fare: number } | null;
 }) {
   const [suggestions, setSuggestions] = useState<Array<{ place_name: string; center: [number, number] }>>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -552,6 +561,31 @@ function BookingCard({
           </div>
         </div>
 
+        {/* Fare & Distance Estimate */}
+        {routeEstimate && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            className="mt-4 flex items-center justify-between rounded-xl bg-secondary/50 px-4 py-3"
+          >
+            <div className="flex items-center gap-3">
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Distance</p>
+                <p className="text-sm font-bold text-foreground">{routeEstimate.distanceKm.toFixed(1)} km</p>
+              </div>
+              <div className="h-6 w-px bg-border" />
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">ETA</p>
+                <p className="text-sm font-bold text-foreground">{routeEstimate.durationMin} min</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Est. Fare</p>
+              <p className="text-lg font-bold text-primary">₱{routeEstimate.fare.toFixed(0)}</p>
+            </div>
+          </motion.div>
+        )}
+
         <Button
           className="mt-4 h-12 w-full rounded-xl text-sm font-semibold"
           onClick={onBook}
@@ -560,7 +594,7 @@ function BookingCard({
           {booking ? (
             <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Requesting...</>
           ) : (
-            "Request Ride"
+            routeEstimate ? `Request Ride • ₱${routeEstimate.fare.toFixed(0)}` : "Request Ride"
           )}
         </Button>
 
