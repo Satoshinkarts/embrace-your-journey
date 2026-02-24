@@ -121,46 +121,70 @@ export default function MapboxMap({
 
       markersRef.current.push(marker);
     });
-
-    if (markers.length > 1) {
-      const bounds = new mapboxgl.LngLatBounds();
-      markers.forEach((m) => bounds.extend([m.lng, m.lat]));
-      map.current.fitBounds(bounds, { padding: 60, maxZoom: 15 });
-    }
   }, [markers]);
 
-  // Draw route
+  // Draw route and auto-fit bounds to show full route + markers
   useEffect(() => {
-    if (!map.current || !routeCoords?.length) return;
+    if (!map.current) return;
 
+    const fitToView = () => {
+      if (!map.current) return;
+      const bounds = new mapboxgl.LngLatBounds();
+      let hasPoints = false;
+
+      // Include route coordinates
+      if (routeCoords?.length) {
+        routeCoords.forEach((c) => { bounds.extend(c); hasPoints = true; });
+      }
+
+      // Include markers
+      markers.forEach((m) => { bounds.extend([m.lng, m.lat]); hasPoints = true; });
+
+      if (hasPoints && (markers.length > 1 || (routeCoords?.length ?? 0) > 0)) {
+        map.current.fitBounds(bounds, {
+          padding: { top: 80, bottom: 280, left: 40, right: 40 },
+          maxZoom: 15,
+          duration: 800,
+        });
+      }
+    };
+
+    // Handle route drawing
     const addRoute = () => {
-      if (map.current!.getSource("route")) {
-        (map.current!.getSource("route") as mapboxgl.GeoJSONSource).setData({
-          type: "Feature",
-          properties: {},
-          geometry: { type: "LineString", coordinates: routeCoords! },
-        });
+      if (!map.current) return;
+
+      if (!routeCoords?.length) {
+        // Remove route if no coords
+        if (map.current.getLayer("route")) map.current.removeLayer("route");
+        if (map.current.getSource("route")) map.current.removeSource("route");
+        fitToView();
+        return;
+      }
+
+      const geojsonData: GeoJSON.Feature = {
+        type: "Feature",
+        properties: {},
+        geometry: { type: "LineString", coordinates: routeCoords },
+      };
+
+      if (map.current.getSource("route")) {
+        (map.current.getSource("route") as mapboxgl.GeoJSONSource).setData(geojsonData);
       } else {
-        map.current!.addSource("route", {
-          type: "geojson",
-          data: {
-            type: "Feature",
-            properties: {},
-            geometry: { type: "LineString", coordinates: routeCoords! },
-          },
-        });
-        map.current!.addLayer({
+        map.current.addSource("route", { type: "geojson", data: geojsonData });
+        map.current.addLayer({
           id: "route",
           type: "line",
           source: "route",
           layout: { "line-join": "round", "line-cap": "round" },
           paint: {
             "line-color": "#4facfe",
-            "line-width": 4,
-            "line-opacity": 0.8,
+            "line-width": 5,
+            "line-opacity": 0.85,
           },
         });
       }
+
+      fitToView();
     };
 
     if (map.current.isStyleLoaded()) {
@@ -168,7 +192,7 @@ export default function MapboxMap({
     } else {
       map.current.on("load", addRoute);
     }
-  }, [routeCoords]);
+  }, [routeCoords, markers]);
 
   if (isLoading) {
     return (
