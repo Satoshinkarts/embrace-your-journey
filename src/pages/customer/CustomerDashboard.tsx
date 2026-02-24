@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -99,15 +99,53 @@ function RatingsSection() {
   );
 }
 
+// Reverse geocode using Mapbox API
+async function reverseGeocode(lng: number, lat: number, token: string): Promise<string> {
+  try {
+    const res = await fetch(
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${token}&limit=1&types=address,poi`
+    );
+    const data = await res.json();
+    if (data.features?.length) {
+      return data.features[0].place_name || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    }
+  } catch {}
+  return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+}
+
 function BookRideSection() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [pickup, setPickup] = useState("");
   const [dropoff, setDropoff] = useState("");
+  const [dropoffInput, setDropoffInput] = useState("");
   const [pickupCoords, setPickupCoords] = useState<[number, number] | null>(null);
   const [dropoffCoords, setDropoffCoords] = useState<[number, number] | null>(null);
-  const [selectingFor, setSelectingFor] = useState<"pickup" | "dropoff">("pickup");
+  const [locatingPickup, setLocatingPickup] = useState(true);
+  const [mapboxToken, setMapboxToken] = useState<string | null>(null);
+
+  // Fetch mapbox token for geocoding
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await supabase.functions.invoke("get-mapbox-token");
+        if (data?.token) setMapboxToken(data.token);
+      } catch {}
+    })();
+  }, []);
+
+  // Auto-detect pickup location
+  const handleGeolocate = useCallback(async (lng: number, lat: number) => {
+    setPickupCoords([lng, lat]);
+    setLocatingPickup(false);
+    if (mapboxToken) {
+      const addr = await reverseGeocode(lng, lat, mapboxToken);
+      setPickup(addr);
+    } else {
+      setPickup(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+    }
+  }, [mapboxToken]);
 
   const { data: activeRide, isLoading: loadingActive } = useQuery({
     queryKey: ["active-ride", user?.id],
@@ -129,10 +167,11 @@ function BookRideSection() {
 
   const bookMutation = useMutation({
     mutationFn: async () => {
+      const finalDropoff = dropoff || dropoffInput.trim();
       const { error } = await supabase.from("rides").insert({
         customer_id: user!.id,
         pickup_address: pickup.trim(),
-        dropoff_address: dropoff.trim(),
+        dropoff_address: finalDropoff,
         pickup_lat: pickupCoords?.[1] || null,
         pickup_lng: pickupCoords?.[0] || null,
         dropoff_lat: dropoffCoords?.[1] || null,
@@ -143,9 +182,8 @@ function BookRideSection() {
     },
     onSuccess: () => {
       toast({ title: "Ride requested!", description: "Looking for a rider nearby..." });
-      setPickup("");
       setDropoff("");
-      setPickupCoords(null);
+      setDropoffInput("");
       setDropoffCoords(null);
       queryClient.invalidateQueries({ queryKey: ["active-ride"] });
     },
@@ -168,19 +206,22 @@ function BookRideSection() {
     },
   });
 
-  const handleMapClick = (lng: number, lat: number) => {
-    if (selectingFor === "pickup") {
-      setPickupCoords([lng, lat]);
-      setPickup(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
-      setSelectingFor("dropoff");
+  // Map click sets dropoff only (pickup is auto-detected)
+  const handleMapClick = useCallback(async (lng: number, lat: number) => {
+    setDropoffCoords([lng, lat]);
+    if (mapboxToken) {
+      const addr = await reverseGeocode(lng, lat, mapboxToken);
+      setDropoff(addr);
+      setDropoffInput(addr);
     } else {
-      setDropoffCoords([lng, lat]);
-      setDropoff(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+      const fallback = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+      setDropoff(fallback);
+      setDropoffInput(fallback);
     }
-  };
+  }, [mapboxToken]);
 
   const markers = [
-    ...(pickupCoords ? [{ id: "pickup", lng: pickupCoords[0], lat: pickupCoords[1], color: "#22c55e", label: "Pickup" }] : []),
+    ...(pickupCoords ? [{ id: "pickup", lng: pickupCoords[0], lat: pickupCoords[1], color: "#22c55e", label: "You are here" }] : []),
     ...(dropoffCoords ? [{ id: "dropoff", lng: dropoffCoords[0], lat: dropoffCoords[1], color: "#f59e0b", label: "Dropoff" }] : []),
     ...(activeRide?.pickup_lat && activeRide?.pickup_lng
       ? [{ id: "active-pickup", lng: activeRide.pickup_lng, lat: activeRide.pickup_lat, color: "#22c55e", label: "Pickup" }]
@@ -189,6 +230,8 @@ function BookRideSection() {
       ? [{ id: "active-dropoff", lng: activeRide.dropoff_lng, lat: activeRide.dropoff_lat, color: "#f59e0b", label: "Dropoff" }]
       : []),
   ];
+
+  const canBook = !!pickup.trim() && !!(dropoff.trim() || dropoffInput.trim());
 
   if (loadingActive) {
     return (
@@ -200,10 +243,12 @@ function BookRideSection() {
 
   return (
     <div className="relative flex h-[calc(100dvh-56px)] flex-col">
-      {/* Map */}
+      {/* Map — auto-geolocate for pickup, click for dropoff */}
       <MapboxMap
         className="absolute inset-0"
         onMapClick={!activeRide ? handleMapClick : undefined}
+        onGeolocate={!activeRide ? handleGeolocate : undefined}
+        showGeolocate={!activeRide}
         markers={markers}
       />
 
@@ -227,14 +272,15 @@ function BookRideSection() {
               <BookingCard
                 key="booking"
                 pickup={pickup}
+                locatingPickup={locatingPickup}
                 dropoff={dropoff}
-                setPickup={setPickup}
+                dropoffInput={dropoffInput}
+                setDropoffInput={setDropoffInput}
                 setDropoff={setDropoff}
-                selectingFor={selectingFor}
-                setSelectingFor={setSelectingFor}
+                setDropoffCoords={setDropoffCoords}
                 onBook={() => bookMutation.mutate()}
                 booking={bookMutation.isPending}
-                canBook={!!pickup.trim() && !!dropoff.trim()}
+                canBook={canBook}
               />
             )}
           </AnimatePresence>
@@ -320,12 +366,13 @@ function ActiveRideCard({ ride, onCancel, cancelling }: { ride: any; onCancel: (
 }
 
 function BookingCard({
-  pickup, dropoff, setPickup, setDropoff, selectingFor, setSelectingFor, onBook, booking, canBook,
+  pickup, locatingPickup, dropoff, dropoffInput, setDropoffInput, setDropoff, setDropoffCoords, onBook, booking, canBook,
 }: {
-  pickup: string; dropoff: string;
-  setPickup: (v: string) => void; setDropoff: (v: string) => void;
-  selectingFor: "pickup" | "dropoff";
-  setSelectingFor: (v: "pickup" | "dropoff") => void;
+  pickup: string; locatingPickup: boolean;
+  dropoff: string; dropoffInput: string;
+  setDropoffInput: (v: string) => void;
+  setDropoff: (v: string) => void;
+  setDropoffCoords: (v: [number, number] | null) => void;
   onBook: () => void; booking: boolean; canBook: boolean;
 }) {
   return (
@@ -339,45 +386,47 @@ function BookingCard({
         <p className="mb-4 text-lg font-bold text-foreground">Where to?</p>
 
         <div className="space-y-3">
-          <button
-            onClick={() => setSelectingFor("pickup")}
-            className={`flex w-full items-center gap-3 rounded-xl border p-3.5 text-left transition-all ${
-              selectingFor === "pickup" ? "border-primary/40 bg-primary/5" : "border-border bg-secondary/50"
-            }`}
-          >
+          {/* Pickup — auto-detected, read-only */}
+          <div className="flex w-full items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 p-3.5">
             <div className="h-2.5 w-2.5 rounded-full bg-primary shadow-[0_0_6px_rgba(34,197,94,0.4)]" />
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Pickup</p>
-              <p className="truncate text-sm font-medium text-foreground">
-                {pickup || "Tap on map to set"}
-              </p>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Pickup (auto-detected)</p>
+              {locatingPickup ? (
+                <div className="flex items-center gap-2 mt-0.5">
+                  <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                  <p className="text-sm text-muted-foreground">Detecting your location...</p>
+                </div>
+              ) : (
+                <p className="truncate text-sm font-medium text-foreground">{pickup}</p>
+              )}
             </div>
-            {pickup && (
-              <button onClick={(e) => { e.stopPropagation(); setPickup(""); }} className="text-muted-foreground">
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </button>
+            <MapPin className="h-4 w-4 text-primary shrink-0" />
+          </div>
 
-          <button
-            onClick={() => setSelectingFor("dropoff")}
-            className={`flex w-full items-center gap-3 rounded-xl border p-3.5 text-left transition-all ${
-              selectingFor === "dropoff" ? "border-warning/40 bg-warning/5" : "border-border bg-secondary/50"
-            }`}
-          >
-            <div className="h-2.5 w-2.5 rounded-full bg-warning shadow-[0_0_6px_rgba(245,158,11,0.4)]" />
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Dropoff</p>
-              <p className="truncate text-sm font-medium text-foreground">
-                {dropoff || "Tap on map to set"}
-              </p>
+          {/* Dropoff — tap map OR type */}
+          <div className="rounded-xl border border-border bg-secondary/50 p-3.5">
+            <div className="flex items-center gap-3">
+              <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-warning shadow-[0_0_6px_rgba(245,158,11,0.4)]" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Dropoff</p>
+                <Input
+                  value={dropoffInput}
+                  onChange={(e) => {
+                    setDropoffInput(e.target.value);
+                    setDropoff(e.target.value);
+                    setDropoffCoords(null); // clear coords when typing manually
+                  }}
+                  placeholder="Type address or tap the map"
+                  className="h-8 border-0 bg-transparent p-0 text-sm font-medium text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0"
+                />
+              </div>
+              {dropoffInput && (
+                <button onClick={() => { setDropoffInput(""); setDropoff(""); setDropoffCoords(null); }} className="text-muted-foreground shrink-0">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
-            {dropoff && (
-              <button onClick={(e) => { e.stopPropagation(); setDropoff(""); }} className="text-muted-foreground">
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </button>
+          </div>
         </div>
 
         <Button
@@ -393,7 +442,7 @@ function BookingCard({
         </Button>
 
         <p className="mt-3 text-center text-[10px] text-muted-foreground">
-          Tap the map to set your pickup and dropoff locations
+          Your pickup is auto-detected • Tap the map or type to set dropoff
         </p>
       </div>
     </motion.div>

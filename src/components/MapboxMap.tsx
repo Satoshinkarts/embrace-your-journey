@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
@@ -8,6 +8,7 @@ interface MapboxMapProps {
   zoom?: number;
   className?: string;
   onMapClick?: (lng: number, lat: number) => void;
+  onGeolocate?: (lng: number, lat: number) => void;
   markers?: Array<{
     id: string;
     lng: number;
@@ -17,20 +18,24 @@ interface MapboxMapProps {
   }>;
   routeCoords?: [number, number][];
   interactive?: boolean;
+  showGeolocate?: boolean;
 }
 
 export default function MapboxMap({
-  center = [122.5654, 10.7202], // Iloilo City
+  center = [122.5654, 10.7202],
   zoom = 13,
   className = "",
   onMapClick,
+  onGeolocate,
   markers = [],
   routeCoords,
   interactive = true,
+  showGeolocate = false,
 }: MapboxMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
+  const geoFired = useRef(false);
   const { data: token, isLoading } = useMapboxToken();
 
   useEffect(() => {
@@ -51,6 +56,27 @@ export default function MapboxMap({
       "top-right"
     );
 
+    if (showGeolocate && onGeolocate) {
+      const geoCtrl = new mapboxgl.GeolocateControl({
+        positionOptions: { enableHighAccuracy: true },
+        trackUserLocation: false,
+        showUserLocation: true,
+      });
+      map.current.addControl(geoCtrl, "top-right");
+
+      geoCtrl.on("geolocate", (e: any) => {
+        if (!geoFired.current) {
+          geoFired.current = true;
+          onGeolocate(e.coords.longitude, e.coords.latitude);
+        }
+      });
+
+      // Auto-trigger geolocation after map loads
+      map.current.on("load", () => {
+        geoCtrl.trigger();
+      });
+    }
+
     if (onMapClick) {
       map.current.on("click", (e) => {
         onMapClick(e.lngLat.lng, e.lngLat.lat);
@@ -67,7 +93,6 @@ export default function MapboxMap({
   useEffect(() => {
     if (!map.current) return;
 
-    // Clear existing
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
 
@@ -96,7 +121,6 @@ export default function MapboxMap({
       markersRef.current.push(marker);
     });
 
-    // Fit bounds if multiple markers
     if (markers.length > 1) {
       const bounds = new mapboxgl.LngLatBounds();
       markers.forEach((m) => bounds.extend([m.lng, m.lat]));
