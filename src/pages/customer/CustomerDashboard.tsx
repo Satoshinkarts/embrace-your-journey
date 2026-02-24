@@ -146,9 +146,19 @@ function BookRideSection() {
       const addr = await reverseGeocode(lng, lat, mapboxToken);
       setPickup(addr);
     } else {
-      setPickup(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+      setPickup("Locating address...");
     }
   }, [mapboxToken, pickupMode]);
+
+  // Retry reverse geocode when token arrives and pickup is still pending
+  useEffect(() => {
+    if (!mapboxToken || !pickupCoords) return;
+    if (pickup && pickup !== "Locating address..." && !pickup.match(/^-?\d+\.\d+,\s*-?\d+\.\d+$/)) return;
+    (async () => {
+      const addr = await reverseGeocode(pickupCoords[0], pickupCoords[1], mapboxToken);
+      setPickup(addr);
+    })();
+  }, [mapboxToken, pickupCoords]);
 
   const { data: activeRide, isLoading: loadingActive } = useQuery({
     queryKey: ["active-ride", user?.id],
@@ -218,9 +228,8 @@ function BookRideSection() {
         const addr = await reverseGeocode(lng, lat, mapboxToken);
         setPickup(addr);
       } else {
-        setPickup(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+        setPickup("Locating address...");
       }
-      // After setting pickup, switch back so next tap sets dropoff
       setPickupMode("gps");
     } else {
       setDropoffCoords([lng, lat]);
@@ -229,9 +238,8 @@ function BookRideSection() {
         setDropoff(addr);
         setDropoffInput(addr);
       } else {
-        const fallback = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-        setDropoff(fallback);
-        setDropoffInput(fallback);
+        setDropoff("Locating address...");
+        setDropoffInput("Locating address...");
       }
     }
   }, [mapboxToken, pickupMode]);
