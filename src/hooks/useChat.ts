@@ -1,7 +1,17 @@
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+
+export interface ChatChannel {
+  id: string;
+  rider_id: string | null;
+  channel_type: string;
+  name: string | null;
+  description: string | null;
+  icon: string | null;
+  created_at: string;
+}
 
 export interface ChatMessage {
   id: string;
@@ -17,7 +27,23 @@ export interface ChatMessage {
   created_at: string;
 }
 
-/** Get or create the rider's private chat channel */
+/** Fetch all shared channels visible to this user */
+export function useSharedChannels() {
+  return useQuery<ChatChannel[]>({
+    queryKey: ["shared-channels"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("chat_channels")
+        .select("*")
+        .is("rider_id", null)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return (data as unknown as ChatChannel[]) || [];
+    },
+  });
+}
+
+/** Get or create the rider's private chat channel (legacy support) */
 export function useChatChannel(riderId?: string) {
   const { user } = useAuth();
   const targetRiderId = riderId || user?.id;
@@ -106,7 +132,7 @@ export function useChatMessages(channelId?: string) {
   return { ...query, loadMore, page };
 }
 
-/** Send a text message */
+/** Send a message */
 export function useSendMessage() {
   const { user, roles } = useAuth();
   const queryClient = useQueryClient();
@@ -156,13 +182,11 @@ export async function uploadChatImage(
   file: File,
   userId: string
 ): Promise<{ url: string; metadata: Record<string, any> }> {
-  // Validate file type
   const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
   if (!allowedTypes.includes(file.type)) {
     throw new Error("Only JPG, PNG, and WEBP images are allowed");
   }
 
-  // Validate file size (10MB)
   const MAX_SIZE = 10 * 1024 * 1024;
   if (file.size > MAX_SIZE) {
     throw new Error("Image must be less than 10MB");
@@ -173,19 +197,14 @@ export async function uploadChatImage(
 
   const { error } = await supabase.storage
     .from("chat-images")
-    .upload(fileName, file, {
-      contentType: file.type,
-      upsert: false,
-    });
+    .upload(fileName, file, { contentType: file.type, upsert: false });
   if (error) throw error;
 
-  // Get signed URL (1 hour expiry)
   const { data: signedData, error: signError } = await supabase.storage
     .from("chat-images")
     .createSignedUrl(fileName, 3600);
   if (signError) throw signError;
 
-  // Extract basic metadata
   const metadata: Record<string, any> = {
     original_filename: file.name,
     file_size: file.size,
@@ -194,7 +213,6 @@ export async function uploadChatImage(
     uploaded_at: new Date().toISOString(),
   };
 
-  // Try to get image dimensions
   try {
     const dims = await getImageDimensions(file);
     metadata.image_width = dims.width;

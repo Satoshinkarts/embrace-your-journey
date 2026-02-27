@@ -1,60 +1,147 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
-  Star, Trophy, TrendingUp, MessageSquare, Award, ChevronRight,
-  Send, ImagePlus, X, Loader2, AlertCircle,
+  Star, Trophy, TrendingUp, MessageSquare, Award, ChevronLeft,
+  Send, ImagePlus, X, Loader2, AlertCircle, Megaphone, MessageCircle,
+  Headphones, ScrollText, Hash,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRiderRanking, useRiderReviews, useAllRiderRankings, type RiderRanking, type AllRiderRanking } from "@/hooks/useRiderRanking";
-import { useChatChannel, useChatMessages, useSendMessage, uploadChatImage, formatRelativeTime, type ChatMessage } from "@/hooks/useChat";
+import { useSharedChannels, useChatMessages, useSendMessage, uploadChatImage, formatRelativeTime, type ChatMessage, type ChatChannel } from "@/hooks/useChat";
+
+const channelIcons: Record<string, React.ElementType> = {
+  megaphone: Megaphone,
+  "message-circle": MessageCircle,
+  headphones: Headphones,
+  "scroll-text": ScrollText,
+};
+
+function getChannelIcon(icon: string | null): React.ElementType {
+  return (icon && channelIcons[icon]) || Hash;
+}
 
 /* ═══════════════════════════════════════════════════════
-   Rider's own ranking panel (with chat tab)
+   Rider's Channel Panel (Discord-style)
    ═══════════════════════════════════════════════════════ */
 export function RiderRankingChannel({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
-  const { data: ranking, isLoading } = useRiderRanking();
+  const { data: ranking, isLoading: loadingRanking } = useRiderRanking();
   const { data: reviews, isLoading: loadingReviews } = useRiderReviews();
+  const { data: channels, isLoading: loadingChannels } = useSharedChannels();
+  const [selectedChannel, setSelectedChannel] = useState<ChatChannel | null>(null);
+
+  // Reset selection when panel closes
+  useEffect(() => {
+    if (!open) setSelectedChannel(null);
+  }, [open]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-md bg-background border-border p-0 flex flex-col">
-        <SheetHeader className="shrink-0 bg-background/90 backdrop-blur-xl border-b border-border/50 px-5 pt-5 pb-0">
-          <SheetTitle className="flex items-center gap-2 text-foreground">
-            <Trophy className="h-5 w-5 text-primary" />
-            My Channel
-          </SheetTitle>
-          <SheetDescription className="text-xs text-muted-foreground">
-            Your private ranking &amp; chat
-          </SheetDescription>
+        <SheetHeader className="shrink-0 bg-background/90 backdrop-blur-xl border-b border-border/50 px-5 pt-5 pb-3">
+          {selectedChannel ? (
+            <>
+              <button
+                onClick={() => setSelectedChannel(null)}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors mb-1"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+                Back to channels
+              </button>
+              <SheetTitle className="flex items-center gap-2 text-foreground">
+                {(() => { const Icon = getChannelIcon(selectedChannel.icon); return <Icon className="h-5 w-5 text-primary" />; })()}
+                # {selectedChannel.name}
+              </SheetTitle>
+              <SheetDescription className="text-xs text-muted-foreground">
+                {selectedChannel.description}
+              </SheetDescription>
+            </>
+          ) : (
+            <>
+              <SheetTitle className="flex items-center gap-2 text-foreground">
+                <Trophy className="h-5 w-5 text-primary" />
+                My Channel
+              </SheetTitle>
+              <SheetDescription className="text-xs text-muted-foreground">
+                Ranking &amp; channels
+              </SheetDescription>
+            </>
+          )}
         </SheetHeader>
 
-        <Tabs defaultValue="ranking" className="flex flex-1 flex-col overflow-hidden">
-          <div className="flex justify-center px-5 mt-3">
-            <TabsList className="grid w-full max-w-[240px] grid-cols-2 bg-secondary/50 rounded-xl">
-              <TabsTrigger value="ranking" className="rounded-lg text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                Ranking
-              </TabsTrigger>
-              <TabsTrigger value="chat" className="rounded-lg text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                Chat
-              </TabsTrigger>
-            </TabsList>
-          </div>
+        <AnimatePresence mode="wait">
+          {selectedChannel ? (
+            <motion.div
+              key="chat"
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 40 }}
+              transition={{ duration: 0.2 }}
+              className="flex-1 overflow-hidden"
+            >
+              {selectedChannel.channel_type === "system_logs" ? (
+                <SystemLogsView channelId={selectedChannel.id} />
+              ) : (
+                <ChatView channelId={selectedChannel.id} />
+              )}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="list"
+              initial={{ opacity: 0, x: -40 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -40 }}
+              transition={{ duration: 0.2 }}
+              className="flex-1 overflow-y-auto"
+            >
+              {/* Ranking summary */}
+              <div className="px-5 py-4">
+                {loadingRanking ? <RankingSkeleton /> : ranking ? <RankingStats ranking={ranking} /> : <EmptyState />}
+                <ReviewsList reviews={reviews || []} loading={loadingReviews} />
+              </div>
 
-          <TabsContent value="ranking" className="flex-1 overflow-y-auto px-5 py-4 space-y-5 mt-0">
-            {isLoading ? <RankingSkeleton /> : ranking ? <RankingStats ranking={ranking} /> : <EmptyState />}
-            <ReviewsList reviews={reviews || []} loading={loadingReviews} />
-          </TabsContent>
-
-          <TabsContent value="chat" className="flex-1 overflow-hidden mt-0">
-            <RiderChatTab />
-          </TabsContent>
-        </Tabs>
+              {/* Channel list */}
+              <div className="border-t border-border/50 px-5 py-4">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">
+                  Channels
+                </p>
+                {loadingChannels ? (
+                  <div className="space-y-2">
+                    {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-12 rounded-xl" />)}
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    {channels?.map((ch, i) => {
+                      const Icon = getChannelIcon(ch.icon);
+                      return (
+                        <motion.button
+                          key={ch.id}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.05 }}
+                          onClick={() => setSelectedChannel(ch)}
+                          className="flex w-full items-center gap-3 rounded-xl px-3.5 py-3 text-left transition-colors hover:bg-secondary/70 active:bg-secondary group"
+                        >
+                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary group-hover:bg-primary/10 transition-colors">
+                            <Icon className="h-4.5 w-4.5 text-muted-foreground group-hover:text-primary transition-colors" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate"># {ch.name}</p>
+                            <p className="text-[10px] text-muted-foreground truncate">{ch.description}</p>
+                          </div>
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </SheetContent>
     </Sheet>
   );
@@ -65,130 +152,213 @@ export function RiderRankingChannel({ open, onOpenChange }: { open: boolean; onO
    ═══════════════════════════════════════════════════════ */
 export function OperatorRankingChannel({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const { data: rankings, isLoading } = useAllRiderRankings();
+  const { data: channels, isLoading: loadingChannels } = useSharedChannels();
   const [selectedRider, setSelectedRider] = useState<string | null>(null);
-  const [chatRider, setChatRider] = useState<{ id: string; name: string } | null>(null);
+  const [selectedChannel, setSelectedChannel] = useState<ChatChannel | null>(null);
+
+  useEffect(() => {
+    if (!open) {
+      setSelectedRider(null);
+      setSelectedChannel(null);
+    }
+  }, [open]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-md bg-background border-border p-0 flex flex-col">
-        <SheetHeader className="shrink-0 bg-background/90 backdrop-blur-xl border-b border-border/50 px-5 pt-5 pb-0">
-          <SheetTitle className="flex items-center gap-2 text-foreground">
-            <Trophy className="h-5 w-5 text-primary" />
-            {chatRider ? `Chat — ${chatRider.name}` : "Rider Rankings"}
-          </SheetTitle>
-          <SheetDescription className="text-xs text-muted-foreground">
-            {chatRider ? "Private channel with rider" : "All rider performance data"}
-          </SheetDescription>
+        <SheetHeader className="shrink-0 bg-background/90 backdrop-blur-xl border-b border-border/50 px-5 pt-5 pb-3">
+          {selectedChannel ? (
+            <>
+              <button
+                onClick={() => setSelectedChannel(null)}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors mb-1"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+                Back
+              </button>
+              <SheetTitle className="flex items-center gap-2 text-foreground">
+                {(() => { const Icon = getChannelIcon(selectedChannel.icon); return <Icon className="h-5 w-5 text-primary" />; })()}
+                # {selectedChannel.name}
+              </SheetTitle>
+              <SheetDescription className="text-xs text-muted-foreground">
+                {selectedChannel.description}
+              </SheetDescription>
+            </>
+          ) : (
+            <>
+              <SheetTitle className="flex items-center gap-2 text-foreground">
+                <Trophy className="h-5 w-5 text-primary" />
+                Rider Rankings
+              </SheetTitle>
+              <SheetDescription className="text-xs text-muted-foreground">
+                All rider performance &amp; channels
+              </SheetDescription>
+            </>
+          )}
         </SheetHeader>
 
-        {chatRider ? (
-          <div className="flex flex-1 flex-col overflow-hidden">
-            <button
-              onClick={() => setChatRider(null)}
-              className="mx-5 mt-3 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        <AnimatePresence mode="wait">
+          {selectedChannel ? (
+            <motion.div
+              key="chat"
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 40 }}
+              transition={{ duration: 0.2 }}
+              className="flex-1 overflow-hidden"
             >
-              ← Back to rankings
-            </button>
-            <div className="flex-1 overflow-hidden">
-              <OperatorChatTab riderId={chatRider.id} />
-            </div>
-          </div>
-        ) : (
-          <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
-            {isLoading ? <RankingSkeleton /> : !rankings?.length ? (
-              <div className="glass-card p-8 text-center">
-                <Trophy className="mx-auto mb-2 h-7 w-7 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">No riders ranked yet</p>
-              </div>
-            ) : (
-              rankings.map((r, i) => (
-                <div key={r.user_id}>
-                  <motion.div
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.04 }}
-                    className="glass-card p-4"
-                  >
-                    <div className="flex items-center justify-between">
-                      <button
-                        onClick={() => setSelectedRider(selectedRider === r.user_id ? null : r.user_id)}
-                        className="flex items-center gap-3 text-left flex-1 min-w-0"
-                      >
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-sm font-bold text-foreground shrink-0">
-                          #{r.rank_position}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">{r.full_name || "Unnamed"}</p>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            <Star className="h-3 w-3 fill-primary text-primary" />
-                            <span className="text-xs text-muted-foreground">{Number(r.avg_rating).toFixed(1)}</span>
-                            <span className="text-[10px] text-muted-foreground">· {r.completed_rides} rides</span>
-                          </div>
-                        </div>
-                      </button>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-8 w-8 p-0 rounded-xl"
-                          onClick={() => setChatRider({ id: r.user_id, name: r.full_name || "Rider" })}
+              {selectedChannel.channel_type === "system_logs" ? (
+                <SystemLogsView channelId={selectedChannel.id} />
+              ) : (
+                <ChatView channelId={selectedChannel.id} />
+              )}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="list"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="flex-1 overflow-y-auto"
+            >
+              {/* Channel list */}
+              <div className="px-5 py-4 border-b border-border/50">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">
+                  Channels
+                </p>
+                {loadingChannels ? (
+                  <div className="space-y-2">
+                    {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-12 rounded-xl" />)}
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    {channels?.map((ch, i) => {
+                      const Icon = getChannelIcon(ch.icon);
+                      return (
+                        <motion.button
+                          key={ch.id}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.05 }}
+                          onClick={() => setSelectedChannel(ch)}
+                          className="flex w-full items-center gap-3 rounded-xl px-3.5 py-3 text-left transition-colors hover:bg-secondary/70 active:bg-secondary group"
                         >
-                          <MessageSquare className="h-4 w-4 text-info" />
-                        </Button>
-                        <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${selectedRider === r.user_id ? "rotate-90" : ""}`} />
-                      </div>
-                    </div>
-                  </motion.div>
+                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary group-hover:bg-primary/10 transition-colors">
+                            <Icon className="h-4.5 w-4.5 text-muted-foreground group-hover:text-primary transition-colors" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate"># {ch.name}</p>
+                            <p className="text-[10px] text-muted-foreground truncate">{ch.description}</p>
+                          </div>
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
 
-                  <AnimatePresence>
-                    {selectedRider === r.user_id && (
+              {/* Rankings */}
+              <div className="px-5 py-4 space-y-3">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  Rankings
+                </p>
+                {isLoading ? <RankingSkeleton /> : !rankings?.length ? (
+                  <div className="glass-card p-8 text-center">
+                    <Trophy className="mx-auto mb-2 h-7 w-7 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">No riders ranked yet</p>
+                  </div>
+                ) : (
+                  rankings.map((r, i) => (
+                    <div key={r.user_id}>
                       <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        className="overflow-hidden"
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.04 }}
+                        className="glass-card p-4"
                       >
-                        <RiderReviewsExpanded riderId={r.user_id} />
+                        <button
+                          onClick={() => setSelectedRider(selectedRider === r.user_id ? null : r.user_id)}
+                          className="flex items-center gap-3 text-left w-full min-w-0"
+                        >
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-sm font-bold text-foreground shrink-0">
+                            #{r.rank_position}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-foreground truncate">{r.full_name || "Unnamed"}</p>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <Star className="h-3 w-3 fill-primary text-primary" />
+                              <span className="text-xs text-muted-foreground">{Number(r.avg_rating).toFixed(1)}</span>
+                              <span className="text-[10px] text-muted-foreground">· {r.completed_rides} rides</span>
+                            </div>
+                          </div>
+                        </button>
                       </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              ))
-            )}
-          </div>
-        )}
+
+                      <AnimatePresence>
+                        {selectedRider === r.user_id && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="overflow-hidden"
+                          >
+                            <RiderReviewsExpanded riderId={r.user_id} />
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  ))
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </SheetContent>
     </Sheet>
   );
 }
 
 /* ═══════════════════════════════════════════════════════
-   Chat Tab for Rider
+   System Logs View (read-only)
    ═══════════════════════════════════════════════════════ */
-function RiderChatTab() {
-  const { user } = useAuth();
-  const { data: channelId, isLoading: loadingChannel } = useChatChannel();
+function SystemLogsView({ channelId }: { channelId: string }) {
+  const { data: messages, isLoading } = useChatMessages(channelId);
 
-  if (loadingChannel) return <div className="flex items-center justify-center h-full"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>;
-  if (!channelId) return <div className="p-5 text-center text-xs text-muted-foreground">Unable to load channel</div>;
-
-  return <ChatView channelId={channelId} />;
+  return (
+    <div className="flex h-full flex-col">
+      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+        {isLoading ? (
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => <Skeleton key={i} className="h-10 rounded-2xl w-full" />)}
+          </div>
+        ) : !messages?.length ? (
+          <div className="flex flex-col items-center justify-center h-full text-center py-12">
+            <ScrollText className="h-8 w-8 text-muted-foreground mb-3" />
+            <p className="text-sm font-medium text-foreground">No logs yet</p>
+            <p className="text-xs text-muted-foreground mt-1">System events will appear here</p>
+          </div>
+        ) : (
+          messages.filter(m => !m.deleted_at).map((msg) => (
+            <div key={msg.id} className="flex items-start gap-2 rounded-xl bg-secondary/40 p-3">
+              <AlertCircle className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-foreground break-words">{msg.content}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">{formatRelativeTime(msg.created_at)}</p>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+      <div className="shrink-0 border-t border-border/50 px-4 py-3 bg-background">
+        <p className="text-[10px] text-muted-foreground text-center">System logs are read-only</p>
+      </div>
+    </div>
+  );
 }
 
 /* ═══════════════════════════════════════════════════════
-   Chat Tab for Operator (specific rider)
-   ═══════════════════════════════════════════════════════ */
-function OperatorChatTab({ riderId }: { riderId: string }) {
-  const { data: channelId, isLoading: loadingChannel } = useChatChannel(riderId);
-
-  if (loadingChannel) return <div className="flex items-center justify-center h-full"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>;
-  if (!channelId) return <div className="p-5 text-center text-xs text-muted-foreground">Unable to load channel</div>;
-
-  return <ChatView channelId={channelId} />;
-}
-
-/* ═══════════════════════════════════════════════════════
-   Core Chat View (shared)
+   Core Chat View (shared across channels)
    ═══════════════════════════════════════════════════════ */
 function ChatView({ channelId }: { channelId: string }) {
   const { user } = useAuth();
@@ -202,7 +372,6 @@ function ChatView({ channelId }: { channelId: string }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-scroll to bottom on new messages
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -218,11 +387,11 @@ function ChatView({ channelId }: { channelId: string }) {
         const { url, metadata } = await uploadChatImage(imagePreview.file, user.id);
         await sendMessage.mutateAsync({
           channelId,
-          content: text.trim() || null,
+          content: text.trim() || undefined,
           messageType: "image",
           imageUrl: url,
           imageMetadata: metadata,
-        } as any);
+        });
       } catch (err: any) {
         console.error("Upload failed:", err);
       } finally {
@@ -240,15 +409,8 @@ function ChatView({ channelId }: { channelId: string }) {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
-    if (!allowedTypes.includes(file.type)) {
-      return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      return;
-    }
-
+    if (!allowedTypes.includes(file.type) || file.size > 10 * 1024 * 1024) return;
     setImagePreview({ file, preview: URL.createObjectURL(file) });
     e.target.value = "";
   };
@@ -262,11 +424,7 @@ function ChatView({ channelId }: { channelId: string }) {
   }, []);
 
   return (
-    <div
-      className="flex h-full flex-col"
-      onDragOver={(e) => e.preventDefault()}
-      onDrop={handleDrop}
-    >
+    <div className="flex h-full flex-col" onDragOver={(e) => e.preventDefault()} onDrop={handleDrop}>
       {/* Messages area */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
         {isLoading ? (
@@ -327,10 +485,7 @@ function ChatView({ channelId }: { channelId: string }) {
                           )}
 
                           {msg.message_type === "image" && msg.image_url && (
-                            <button
-                              onClick={() => setExpandedImage(msg.image_url)}
-                              className="mb-1.5 block"
-                            >
+                            <button onClick={() => setExpandedImage(msg.image_url)} className="mb-1.5 block">
                               <img
                                 src={msg.image_url}
                                 alt="Shared image"
@@ -372,16 +527,9 @@ function ChatView({ channelId }: { channelId: string }) {
             className="overflow-hidden border-t border-border/50 px-4 py-2"
           >
             <div className="relative inline-block">
-              <img
-                src={imagePreview.preview}
-                alt="Preview"
-                className="h-20 rounded-xl object-cover"
-              />
+              <img src={imagePreview.preview} alt="Preview" className="h-20 rounded-xl object-cover" />
               <button
-                onClick={() => {
-                  URL.revokeObjectURL(imagePreview.preview);
-                  setImagePreview(null);
-                }}
+                onClick={() => { URL.revokeObjectURL(imagePreview.preview); setImagePreview(null); }}
                 className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center"
               >
                 <X className="h-3 w-3" />
@@ -408,11 +556,7 @@ function ChatView({ channelId }: { channelId: string }) {
             >
               <X className="h-5 w-5 text-foreground" />
             </button>
-            <img
-              src={expandedImage}
-              alt="Full resolution"
-              className="max-w-full max-h-full object-contain rounded-xl"
-            />
+            <img src={expandedImage} alt="Full resolution" className="max-w-full max-h-full object-contain rounded-xl" />
           </motion.div>
         )}
       </AnimatePresence>
@@ -420,13 +564,7 @@ function ChatView({ channelId }: { channelId: string }) {
       {/* Input bar */}
       <div className="shrink-0 border-t border-border/50 px-3 py-3 bg-background">
         <div className="flex items-center gap-2">
-          <input
-            type="file"
-            ref={fileInputRef}
-            accept="image/jpeg,image/png,image/webp"
-            onChange={handleFileSelect}
-            className="hidden"
-          />
+          <input type="file" ref={fileInputRef} accept="image/jpeg,image/png,image/webp" onChange={handleFileSelect} className="hidden" />
           <button
             onClick={() => fileInputRef.current?.click()}
             className="shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-secondary text-muted-foreground hover:text-foreground transition-colors"
@@ -448,11 +586,7 @@ function ChatView({ channelId }: { channelId: string }) {
             disabled={(!text.trim() && !imagePreview) || uploading || sendMessage.isPending}
             className="shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground disabled:opacity-40 transition-opacity"
           >
-            {uploading || sendMessage.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
+            {uploading || sendMessage.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </button>
         </div>
       </div>
@@ -465,7 +599,7 @@ function ChatView({ channelId }: { channelId: string }) {
    ═══════════════════════════════════════════════════════ */
 function ReviewsList({ reviews, loading }: { reviews: any[]; loading: boolean }) {
   return (
-    <div>
+    <div className="mt-5">
       <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">
         Reviews ({reviews?.length || 0})
       </p>
