@@ -6,12 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
-  Star, Trophy, TrendingUp, MessageSquare, Award, ChevronLeft,
+  Star, Trophy, TrendingUp, MessageSquare, Award, ChevronLeft, ChevronDown, ChevronUp,
   Send, ImagePlus, X, Loader2, AlertCircle, Megaphone, MessageCircle,
-  Headphones, ScrollText, Hash,
+  Headphones, ScrollText, Hash, User, Bike, Calendar, Clock,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useRiderRanking, useRiderReviews, useAllRiderRankings, type RiderRanking, type AllRiderRanking } from "@/hooks/useRiderRanking";
+import { useRiderRanking, useRiderReviews, useAllRiderRankings, useRiderRidesWithRatings, type RiderRanking, type AllRiderRanking, type RideWithRating } from "@/hooks/useRiderRanking";
 import { useSharedChannels, useChatMessages, useSendMessage, uploadChatImage, formatRelativeTime, type ChatMessage, type ChatChannel } from "@/hooks/useChat";
 
 const channelIcons: Record<string, React.ElementType> = {
@@ -30,7 +30,7 @@ function getChannelIcon(icon: string | null): React.ElementType {
    ═══════════════════════════════════════════════════════ */
 export function RiderRankingChannel({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const { data: ranking, isLoading: loadingRanking } = useRiderRanking();
-  const { data: reviews, isLoading: loadingReviews } = useRiderReviews();
+  const { data: rides, isLoading: loadingRides } = useRiderRidesWithRatings();
   const { data: channels, isLoading: loadingChannels } = useSharedChannels();
   const [selectedChannel, setSelectedChannel] = useState<ChatChannel | null>(null);
 
@@ -98,10 +98,11 @@ export function RiderRankingChannel({ open, onOpenChange }: { open: boolean; onO
               transition={{ duration: 0.2 }}
               className="flex-1 overflow-y-auto"
             >
-              {/* Ranking summary */}
+              {/* Rider Profile */}
               <div className="px-5 py-4">
-                {loadingRanking ? <RankingSkeleton /> : ranking ? <RankingStats ranking={ranking} /> : <EmptyState />}
-                <ReviewsList reviews={reviews || []} loading={loadingReviews} />
+                {loadingRanking ? <RankingSkeleton /> : ranking ? (
+                  <RiderProfileView ranking={ranking} rides={rides || []} loadingRides={loadingRides} />
+                ) : <EmptyState />}
               </div>
 
               {/* Channel list */}
@@ -589,6 +590,193 @@ function ChatView({ channelId }: { channelId: string }) {
             {uploading || sendMessage.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+   Rider Profile View
+   ═══════════════════════════════════════════════════════ */
+function RiderProfileView({ ranking, rides, loadingRides }: { ranking: RiderRanking; rides: RideWithRating[]; loadingRides: boolean }) {
+  const [showBreakdown, setShowBreakdown] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+
+  const today = new Date().toDateString();
+  const todayRides = rides.filter(r => r.completed_at && new Date(r.completed_at).toDateString() === today).length;
+
+  // Rating scaled to 10
+  const ratingOutOf10 = (Number(ranking.avg_rating) * 2).toFixed(2);
+
+  // Monthly breakdown
+  const monthlyBreakdown = rides.reduce<Record<string, number>>((acc, r) => {
+    const d = new Date(r.completed_at || r.created_at);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+  const sortedMonths = Object.entries(monthlyBreakdown).sort(([a], [b]) => b.localeCompare(a));
+
+  const firstRideDate = rides.length
+    ? new Date(rides[rides.length - 1].created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : null;
+
+  return (
+    <div className="space-y-4">
+      {/* Profile header */}
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="glass-card p-5">
+        <div className="flex items-center gap-4">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+            <User className="h-7 w-7 text-primary" />
+          </div>
+          <div className="flex-1">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Profile</p>
+            <div className="flex items-baseline gap-1.5 mt-1">
+              <span className="text-2xl font-black text-primary">{ratingOutOf10}</span>
+              <span className="text-sm text-muted-foreground font-medium">/10.00</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">Ratings · #{ranking.rank_position} of {ranking.total_riders}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1 mt-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Star key={i} className={`h-4 w-4 ${i < Math.round(ranking.avg_rating) ? "fill-primary text-primary" : "text-muted-foreground/25"}`} />
+          ))}
+          <span className="text-xs text-muted-foreground ml-1.5">{ranking.total_reviews} reviews</span>
+        </div>
+      </motion.div>
+
+      {/* Rides section */}
+      <div className="glass-card p-4 space-y-3">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Rides</p>
+
+        <div className="grid grid-cols-2 gap-2.5">
+          <div className="rounded-xl bg-secondary/50 p-3 text-center">
+            <Clock className="mx-auto h-4 w-4 text-primary mb-1" />
+            <p className="text-xl font-bold text-foreground">{todayRides}</p>
+            <p className="text-[10px] text-muted-foreground">Today</p>
+          </div>
+          <button
+            onClick={() => setShowBreakdown(!showBreakdown)}
+            className="rounded-xl bg-secondary/50 p-3 text-center hover:bg-secondary transition-colors"
+          >
+            <Bike className="mx-auto h-4 w-4 text-primary mb-1" />
+            <p className="text-xl font-bold text-foreground">{ranking.completed_rides}</p>
+            <p className="text-[10px] text-primary font-medium flex items-center justify-center gap-0.5">
+              Total {showBreakdown ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            </p>
+          </button>
+        </div>
+
+        <AnimatePresence>
+          {showBreakdown && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="rounded-xl border border-border/50 bg-secondary/30 p-3 space-y-2">
+                {firstRideDate && (
+                  <p className="text-[10px] text-muted-foreground">
+                    Member since <span className="text-foreground font-medium">{firstRideDate}</span>
+                  </p>
+                )}
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-2">Monthly Overview</p>
+                {loadingRides ? (
+                  <div className="space-y-1.5">{[1, 2, 3].map(i => <Skeleton key={i} className="h-6 rounded-lg" />)}</div>
+                ) : !sortedMonths.length ? (
+                  <p className="text-xs text-muted-foreground">No rides yet</p>
+                ) : (
+                  <div className="space-y-1">
+                    {sortedMonths.map(([month, count]) => {
+                      const [y, m] = month.split("-");
+                      const label = new Date(Number(y), Number(m) - 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+                      const pct = Math.min(100, (count / Math.max(...Object.values(monthlyBreakdown))) * 100);
+                      return (
+                        <div key={month} className="flex items-center gap-2">
+                          <span className="text-[10px] text-muted-foreground w-24 shrink-0 truncate">{label}</span>
+                          <div className="flex-1 h-2 rounded-full bg-secondary overflow-hidden">
+                            <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} className="h-full rounded-full bg-primary" />
+                          </div>
+                          <span className="text-[10px] font-bold text-foreground w-6 text-right">{count}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Ride History */}
+      <div className="space-y-2">
+        <button onClick={() => setShowHistory(!showHistory)} className="flex items-center justify-between w-full">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Ride History ({rides.length})</p>
+          {showHistory ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
+        </button>
+
+        <AnimatePresence>
+          {showHistory && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              {loadingRides ? (
+                <div className="space-y-2">{[1, 2, 3].map(i => <Skeleton key={i} className="h-20 rounded-xl" />)}</div>
+              ) : !rides.length ? (
+                <div className="glass-card p-6 text-center">
+                  <Bike className="mx-auto mb-2 h-6 w-6 text-muted-foreground" />
+                  <p className="text-xs text-muted-foreground">No rides yet</p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                  {rides.slice(0, 50).map((ride, i) => (
+                    <motion.div
+                      key={ride.id}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.03 }}
+                      className="glass-card p-3.5"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-medium text-foreground truncate">{ride.pickup_address}</p>
+                          <p className="text-[10px] text-muted-foreground truncate">→ {ride.dropoff_address}</p>
+                          <p className="text-[10px] text-muted-foreground mt-1">
+                            {new Date(ride.completed_at || ride.created_at).toLocaleDateString("en-US", {
+                              month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit",
+                            })}
+                          </p>
+                        </div>
+                        <div className="shrink-0 text-right space-y-1">
+                          {ride.fare && <p className="text-sm font-bold text-primary">₱{Number(ride.fare).toFixed(2)}</p>}
+                          {ride.customer_rating !== null ? (
+                            <div className="flex items-center gap-0.5 justify-end">
+                              {Array.from({ length: 5 }).map((_, si) => (
+                                <Star key={si} className={`h-2.5 w-2.5 ${si < ride.customer_rating! ? "fill-primary text-primary" : "text-muted-foreground/25"}`} />
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-[10px] text-muted-foreground italic">No rating</p>
+                          )}
+                        </div>
+                      </div>
+                      {ride.customer_comment && (
+                        <p className="text-[10px] text-muted-foreground mt-1.5 italic">"{ride.customer_comment}"</p>
+                      )}
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

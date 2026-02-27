@@ -15,6 +15,20 @@ export interface AllRiderRanking extends RiderRanking {
   full_name: string;
 }
 
+export interface RideWithRating {
+  id: string;
+  pickup_address: string;
+  dropoff_address: string;
+  status: string;
+  fare: number | null;
+  distance_km: number | null;
+  created_at: string;
+  completed_at: string | null;
+  started_at: string | null;
+  customer_rating: number | null;
+  customer_comment: string | null;
+}
+
 export function useRiderRanking() {
   const { user } = useAuth();
 
@@ -56,6 +70,49 @@ export function useRiderReviews(riderId?: string) {
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
+    },
+    enabled: !!targetId,
+  });
+}
+
+/** Fetch all completed rides for the rider, with customer rating joined */
+export function useRiderRidesWithRatings(riderId?: string) {
+  const { user } = useAuth();
+  const targetId = riderId || user?.id;
+
+  return useQuery<RideWithRating[]>({
+    queryKey: ["rider-rides-with-ratings", targetId],
+    queryFn: async () => {
+      // Fetch completed rides
+      const { data: rides, error: ridesError } = await supabase
+        .from("rides")
+        .select("id, pickup_address, dropoff_address, status, fare, distance_km, created_at, completed_at, started_at")
+        .eq("rider_id", targetId!)
+        .eq("status", "completed" as any)
+        .order("created_at", { ascending: false });
+      if (ridesError) throw ridesError;
+
+      if (!rides?.length) return [];
+
+      // Fetch ratings for these rides (customer → rider)
+      const rideIds = rides.map((r: any) => r.id);
+      const { data: ratings, error: ratingsError } = await supabase
+        .from("ratings")
+        .select("ride_id, rating, comment")
+        .eq("rated_id", targetId!)
+        .in("ride_id", rideIds);
+      if (ratingsError) throw ratingsError;
+
+      const ratingMap = new Map<string, { rating: number; comment: string | null }>();
+      (ratings || []).forEach((r: any) => {
+        ratingMap.set(r.ride_id, { rating: r.rating, comment: r.comment });
+      });
+
+      return (rides as any[]).map((ride) => ({
+        ...ride,
+        customer_rating: ratingMap.get(ride.id)?.rating ?? null,
+        customer_comment: ratingMap.get(ride.id)?.comment ?? null,
+      }));
     },
     enabled: !!targetId,
   });
