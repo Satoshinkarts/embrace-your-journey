@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -6,8 +7,9 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import MapboxMap from "@/components/MapboxMap";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Navigation, CheckCircle, Clock, DollarSign, Loader2, Star } from "lucide-react";
+import { MapPin, Navigation, CheckCircle, Clock, DollarSign, Loader2, Star, Trophy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { RiderRankingChannel } from "@/components/RankingChannel";
 
 type RideStatus = "requested" | "accepted" | "en_route" | "picked_up" | "completed" | "cancelled";
 
@@ -18,9 +20,19 @@ const statusFlow: { from: RideStatus; to: RideStatus; label: string; icon: React
 ];
 
 export default function RiderDashboard() {
+  const [rankingOpen, setRankingOpen] = useState(false);
   return (
     <DashboardLayout fullScreen>
       <ActiveRideOrAvailable />
+      {/* Floating ranking button */}
+      <button
+        onClick={() => setRankingOpen(true)}
+        className="fixed right-4 top-20 z-30 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg active:scale-95 transition-transform"
+        aria-label="My Ranking"
+      >
+        <Trophy className="h-4.5 w-4.5" />
+      </button>
+      <RiderRankingChannel open={rankingOpen} onOpenChange={setRankingOpen} />
     </DashboardLayout>
   );
 }
