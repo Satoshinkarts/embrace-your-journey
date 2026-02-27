@@ -111,6 +111,7 @@ export function useDMChannels() {
 
 /** Fetch DM messages */
 export function useDMMessages(dmChannelId?: string) {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   const query = useQuery<DMMessage[]>({
@@ -127,6 +128,26 @@ export function useDMMessages(dmChannelId?: string) {
     },
     enabled: !!dmChannelId,
   });
+
+  // Mark unread messages as read when conversation is opened
+  useEffect(() => {
+    if (!dmChannelId || !user || !query.data) return;
+
+    const unread = query.data.filter(
+      (m) => m.sender_id !== user.id && !m.read_at
+    );
+    if (!unread.length) return;
+
+    const markRead = async () => {
+      await supabase
+        .from("dm_messages")
+        .update({ read_at: new Date().toISOString() } as any)
+        .in("id", unread.map((m) => m.id));
+
+      queryClient.invalidateQueries({ queryKey: ["unread-dm-count", user.id] });
+    };
+    markRead();
+  }, [dmChannelId, user, query.data, queryClient]);
 
   // Realtime
   useEffect(() => {
