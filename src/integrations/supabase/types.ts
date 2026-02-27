@@ -207,6 +207,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_all_rider_rankings: { Args: never; Returns: Json }
+      get_rider_ranking: { Args: { _rider_id: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

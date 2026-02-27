@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
@@ -5,11 +6,25 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import ActiveRidesMap from "@/components/ActiveRidesMap";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Car, Users, CheckCircle, XCircle, BarChart3 } from "lucide-react";
+import { Car, Users, CheckCircle, XCircle, BarChart3, Trophy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { OperatorRankingChannel } from "@/components/RankingChannel";
 
 export default function OperatorDashboard() {
-  return <DashboardLayout><FleetView /></DashboardLayout>;
+  const [rankingOpen, setRankingOpen] = useState(false);
+  return (
+    <DashboardLayout>
+      <div className="flex items-center justify-between mb-4">
+        <div />
+        <Button variant="outline" size="sm" className="rounded-xl gap-1.5" onClick={() => setRankingOpen(true)}>
+          <Trophy className="h-3.5 w-3.5" />
+          Rankings
+        </Button>
+      </div>
+      <FleetView />
+      <OperatorRankingChannel open={rankingOpen} onOpenChange={setRankingOpen} />
+    </DashboardLayout>
+  );
 }
 
 export function OperatorMap() {

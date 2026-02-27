@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
@@ -6,12 +7,25 @@ import ActiveRidesMap from "@/components/ActiveRidesMap";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, MapPin, Shield, BarChart3, Trash2, TrendingUp } from "lucide-react";
+import { Users, MapPin, Shield, BarChart3, Trash2, TrendingUp, Trophy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { OperatorRankingChannel } from "@/components/RankingChannel";
 
 export default function AdminDashboard() {
-  return <DashboardLayout><OverviewView /></DashboardLayout>;
+  const [rankingOpen, setRankingOpen] = useState(false);
+  return (
+    <DashboardLayout>
+      <div className="flex items-center justify-between mb-4">
+        <div />
+        <Button variant="outline" size="sm" className="rounded-xl gap-1.5" onClick={() => setRankingOpen(true)}>
+          <Trophy className="h-3.5 w-3.5" />
+          Rankings
+        </Button>
+      </div>
+      <OverviewView />
+      <OperatorRankingChannel open={rankingOpen} onOpenChange={setRankingOpen} />
+    </DashboardLayout>
+  );
 }
 
 export function AdminUsers() {
