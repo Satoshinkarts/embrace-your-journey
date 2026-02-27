@@ -49,21 +49,33 @@ export type Database = {
       }
       chat_channels: {
         Row: {
+          channel_type: string
           created_at: string
+          description: string | null
+          icon: string | null
           id: string
-          rider_id: string
+          name: string | null
+          rider_id: string | null
           updated_at: string
         }
         Insert: {
+          channel_type?: string
           created_at?: string
+          description?: string | null
+          icon?: string | null
           id?: string
-          rider_id: string
+          name?: string | null
+          rider_id?: string | null
           updated_at?: string
         }
         Update: {
+          channel_type?: string
           created_at?: string
+          description?: string | null
+          icon?: string | null
           id?: string
-          rider_id?: string
+          name?: string | null
+          rider_id?: string | null
           updated_at?: string
         }
         Relationships: []
