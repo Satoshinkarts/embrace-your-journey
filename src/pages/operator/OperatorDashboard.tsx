@@ -10,16 +10,23 @@ import { Car, Users, CheckCircle, XCircle, BarChart3, Trophy } from "lucide-reac
 import { useToast } from "@/hooks/use-toast";
 import { OperatorRankingChannel } from "@/components/RankingChannel";
 import OperatorLiveMap from "@/components/OperatorLiveMap";
+import { useUnreadDMCount } from "@/hooks/useUnreadDMs";
 
 export default function OperatorDashboard() {
   const [rankingOpen, setRankingOpen] = useState(false);
+  const unreadCount = useUnreadDMCount();
   return (
     <DashboardLayout>
       <div className="flex items-center justify-between mb-4">
         <div />
-        <Button variant="outline" size="sm" className="rounded-xl gap-1.5" onClick={() => setRankingOpen(true)}>
+        <Button variant="outline" size="sm" className="rounded-xl gap-1.5 relative" onClick={() => setRankingOpen(true)}>
           <Trophy className="h-3.5 w-3.5" />
           Rankings
+          {unreadCount > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground shadow-sm">
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
+          )}
         </Button>
       </div>
       <FleetView />
