@@ -11,6 +11,7 @@ import { MapPin, Navigation, CheckCircle, Clock, DollarSign, Loader2, Star, Trop
 import { useToast } from "@/hooks/use-toast";
 import { RiderRankingChannel } from "@/components/RankingChannel";
 import { useRiderLocationTracker, useRiderDirectives, useUpdateDirective, type DispatchDirective } from "@/hooks/useRiderTracking";
+import { useUnreadDMCount } from "@/hooks/useUnreadDMs";
 
 type RideStatus = "requested" | "accepted" | "en_route" | "picked_up" | "completed" | "cancelled";
 
@@ -22,6 +23,7 @@ const statusFlow: { from: RideStatus; to: RideStatus; label: string; icon: React
 
 export default function RiderDashboard() {
   const [rankingOpen, setRankingOpen] = useState(false);
+  const unreadCount = useUnreadDMCount();
 
   // Start tracking rider location
   useRiderLocationTracker(10000);
@@ -38,6 +40,11 @@ export default function RiderDashboard() {
         aria-label="My Ranking"
       >
         <span className="text-sm font-bold leading-none">H</span>
+        {unreadCount > 0 && (
+          <span className="absolute -top-1.5 -left-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground shadow-sm">
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </span>
+        )}
       </button>
       <RiderRankingChannel open={rankingOpen} onOpenChange={setRankingOpen} />
     </DashboardLayout>
