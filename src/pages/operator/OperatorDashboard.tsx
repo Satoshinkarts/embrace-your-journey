@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import ActiveRidesMap from "@/components/ActiveRidesMap";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Car, Users, CheckCircle, XCircle, BarChart3, Trophy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { OperatorRankingChannel } from "@/components/RankingChannel";
+import OperatorLiveMap from "@/components/OperatorLiveMap";
 
 export default function OperatorDashboard() {
   const [rankingOpen, setRankingOpen] = useState(false);
@@ -28,7 +29,7 @@ export default function OperatorDashboard() {
 }
 
 export function OperatorMap() {
-  return <DashboardLayout fullScreen><ActiveRidesMap /></DashboardLayout>;
+  return <DashboardLayout fullScreen><OperatorLiveMap /></DashboardLayout>;
 }
 
 export function OperatorRiders() {

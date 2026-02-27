@@ -2,14 +2,15 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import MapboxMap from "@/components/MapboxMap";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Navigation, CheckCircle, Clock, DollarSign, Loader2, Star, Trophy } from "lucide-react";
+import { MapPin, Navigation, CheckCircle, Clock, DollarSign, Loader2, Star, Trophy, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { RiderRankingChannel } from "@/components/RankingChannel";
+import { useRiderLocationTracker, useRiderDirectives, useUpdateDirective, type DispatchDirective } from "@/hooks/useRiderTracking";
 
 type RideStatus = "requested" | "accepted" | "en_route" | "picked_up" | "completed" | "cancelled";
 
@@ -21,9 +22,15 @@ const statusFlow: { from: RideStatus; to: RideStatus; label: string; icon: React
 
 export default function RiderDashboard() {
   const [rankingOpen, setRankingOpen] = useState(false);
+
+  // Start tracking rider location
+  useRiderLocationTracker(10000);
+
   return (
     <DashboardLayout fullScreen>
       <ActiveRideOrAvailable />
+      {/* Dispatch directive banner */}
+      <DirectiveBanner />
       {/* Floating ranking button */}
       <button
         onClick={() => setRankingOpen(true)}
@@ -34,6 +41,90 @@ export default function RiderDashboard() {
       </button>
       <RiderRankingChannel open={rankingOpen} onOpenChange={setRankingOpen} />
     </DashboardLayout>
+  );
+}
+
+/** Shows dispatch directives from operator as a floating banner */
+function DirectiveBanner() {
+  const { data: directives } = useRiderDirectives();
+  const updateDirective = useUpdateDirective();
+  const { toast } = useToast();
+
+  const activeDirective = directives?.[0];
+  if (!activeDirective) return null;
+
+  const handleAcknowledge = async () => {
+    try {
+      await updateDirective.mutateAsync({ id: activeDirective.id, status: "acknowledged" });
+      toast({ title: "Directive acknowledged" });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const handleComplete = async () => {
+    try {
+      await updateDirective.mutateAsync({ id: activeDirective.id, status: "completed" });
+      toast({ title: "Directive completed!" });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    }
+  };
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        className="fixed top-16 left-4 right-14 z-30"
+      >
+        <div className="glass-card border border-warning/30 bg-warning/5 p-4 space-y-2">
+          <div className="flex items-start gap-2.5">
+            <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] uppercase tracking-widest text-warning font-bold">Dispatch Directive</p>
+              <p className="text-sm font-medium text-foreground mt-1">
+                <MapPin className="inline h-3.5 w-3.5 text-primary mr-1" />
+                {activeDirective.destination_address}
+              </p>
+              {activeDirective.instructions && (
+                <p className="text-xs text-muted-foreground mt-1 italic">"{activeDirective.instructions}"</p>
+              )}
+              <p className="text-[10px] text-muted-foreground mt-1">
+                {new Date(activeDirective.created_at).toLocaleTimeString()}
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            {activeDirective.status === "pending" ? (
+              <Button
+                size="sm"
+                className="flex-1 rounded-xl text-xs h-8"
+                onClick={handleAcknowledge}
+                disabled={updateDirective.isPending}
+              >
+                {updateDirective.isPending ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                Acknowledge
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                className="flex-1 rounded-xl text-xs h-8"
+                onClick={handleComplete}
+                disabled={updateDirective.isPending}
+              >
+                {updateDirective.isPending ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <CheckCircle className="h-3 w-3 mr-1" />}
+                Mark Complete
+              </Button>
+            )}
+          </div>
+          <Badge className="bg-secondary text-foreground border-border border text-[10px] capitalize">
+            {activeDirective.status}
+          </Badge>
+        </div>
+      </motion.div>
+    </AnimatePresence>
   );
 }
 
