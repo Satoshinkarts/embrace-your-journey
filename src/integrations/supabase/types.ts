@@ -175,31 +175,99 @@ export type Database = {
         }
         Relationships: []
       }
+      dm_channels: {
+        Row: {
+          created_at: string
+          id: string
+          user1_id: string
+          user2_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user1_id: string
+          user2_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user1_id?: string
+          user2_id?: string
+        }
+        Relationships: []
+      }
+      dm_messages: {
+        Row: {
+          content: string | null
+          created_at: string
+          dm_channel_id: string
+          id: string
+          image_url: string | null
+          read_at: string | null
+          sender_id: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          dm_channel_id: string
+          id?: string
+          image_url?: string | null
+          read_at?: string | null
+          sender_id: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          dm_channel_id?: string
+          id?: string
+          image_url?: string | null
+          read_at?: string | null
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dm_messages_dm_channel_id_fkey"
+            columns: ["dm_channel_id"]
+            isOneToOne: false
+            referencedRelation: "dm_channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
+          bio: string | null
           created_at: string
           full_name: string | null
           id: string
           phone: string | null
+          status_text: string | null
+          status_type: string
           updated_at: string
           user_id: string
         }
         Insert: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
           full_name?: string | null
           id?: string
           phone?: string | null
+          status_text?: string | null
+          status_type?: string
           updated_at?: string
           user_id: string
         }
         Update: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
           full_name?: string | null
           id?: string
           phone?: string | null
+          status_text?: string | null
+          status_type?: string
           updated_at?: string
           user_id?: string
         }

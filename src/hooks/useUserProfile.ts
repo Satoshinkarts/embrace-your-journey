@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -6,6 +6,9 @@ export interface UserProfileData {
   full_name: string | null;
   phone: string | null;
   avatar_url: string | null;
+  bio: string | null;
+  status_text: string | null;
+  status_type: string;
   created_at: string;
   roles: string[];
   // Role-specific stats
@@ -24,7 +27,6 @@ export function useUserProfile() {
   return useQuery<UserProfileData>({
     queryKey: ["user-profile", user?.id],
     queryFn: async () => {
-      // Fetch profile
       const { data: profile, error } = await supabase
         .from("profiles")
         .select("*")
@@ -36,13 +38,15 @@ export function useUserProfile() {
         full_name: profile.full_name,
         phone: profile.phone,
         avatar_url: profile.avatar_url,
+        bio: (profile as any).bio || null,
+        status_text: (profile as any).status_text || null,
+        status_type: (profile as any).status_type || "online",
         created_at: profile.created_at,
         roles,
       };
 
       const primaryRole = roles[0];
 
-      // Fetch role-specific stats
       if (primaryRole === "rider") {
         const [ridesRes, ratingsRes] = await Promise.all([
           supabase.from("rides").select("id, fare", { count: "exact" }).eq("rider_id", user!.id).eq("status", "completed" as any),
@@ -71,4 +75,44 @@ export function useUserProfile() {
     },
     enabled: !!user,
   });
+}
+
+/** Update own profile */
+export function useUpdateProfile() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (updates: {
+      full_name?: string;
+      phone?: string;
+      bio?: string;
+      status_text?: string;
+      status_type?: string;
+      avatar_url?: string;
+    }) => {
+      const { error } = await supabase
+        .from("profiles")
+        .update(updates as any)
+        .eq("user_id", user!.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user-profile", user?.id] });
+    },
+  });
+}
+
+/** Upload avatar */
+export async function uploadAvatar(file: File, userId: string): Promise<string> {
+  const ext = file.name.split(".").pop() || "jpg";
+  const fileName = `${userId}/avatar.${ext}`;
+
+  const { error } = await supabase.storage
+    .from("avatars")
+    .upload(fileName, file, { contentType: file.type, upsert: true });
+  if (error) throw error;
+
+  const { data } = supabase.storage.from("avatars").getPublicUrl(fileName);
+  return `${data.publicUrl}?t=${Date.now()}`;
 }
