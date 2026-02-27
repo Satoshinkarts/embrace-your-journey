@@ -27,10 +27,10 @@ export default function RiderDashboard() {
       {/* Floating ranking button */}
       <button
         onClick={() => setRankingOpen(true)}
-        className="fixed right-4 top-20 z-30 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg active:scale-95 transition-transform"
+        className="fixed right-0 top-1/2 -translate-y-1/2 z-30 flex h-12 w-7 items-center justify-center rounded-l-lg bg-primary text-primary-foreground shadow-lg active:scale-95 transition-transform"
         aria-label="My Ranking"
       >
-        <Trophy className="h-4.5 w-4.5" />
+        <span className="text-sm font-bold leading-none">H</span>
       </button>
       <RiderRankingChannel open={rankingOpen} onOpenChange={setRankingOpen} />
     </DashboardLayout>
