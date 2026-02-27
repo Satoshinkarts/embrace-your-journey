@@ -14,6 +14,110 @@ export type Database = {
   }
   public: {
     Tables: {
+      channel_audit_logs: {
+        Row: {
+          action: string
+          actor_id: string
+          actor_role: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          target_id: string | null
+          target_type: string | null
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          actor_role: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          actor_role?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Relationships: []
+      }
+      chat_channels: {
+        Row: {
+          created_at: string
+          id: string
+          rider_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          rider_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          rider_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      chat_messages: {
+        Row: {
+          channel_id: string
+          content: string | null
+          created_at: string
+          deleted_at: string | null
+          edited_at: string | null
+          id: string
+          image_metadata: Json | null
+          image_url: string | null
+          message_type: string
+          sender_id: string
+          sender_role: string
+        }
+        Insert: {
+          channel_id: string
+          content?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          id?: string
+          image_metadata?: Json | null
+          image_url?: string | null
+          message_type?: string
+          sender_id: string
+          sender_role?: string
+        }
+        Update: {
+          channel_id?: string
+          content?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          id?: string
+          image_metadata?: Json | null
+          image_url?: string | null
+          message_type?: string
+          sender_id?: string
+          sender_role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "chat_channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -208,6 +312,10 @@ export type Database = {
     }
     Functions: {
       get_all_rider_rankings: { Args: never; Returns: Json }
+      get_or_create_rider_channel: {
+        Args: { _rider_id: string }
+        Returns: string
+      }
       get_rider_ranking: { Args: { _rider_id: string }; Returns: Json }
       has_role: {
         Args: {
