@@ -35,14 +35,16 @@ export function RiderRankingChannel({ open, onOpenChange }: { open: boolean; onO
         </SheetHeader>
 
         <Tabs defaultValue="ranking" className="flex flex-1 flex-col overflow-hidden">
-          <TabsList className="mx-5 mt-3 mb-0 grid w-auto grid-cols-2 bg-secondary/50 rounded-xl">
-            <TabsTrigger value="ranking" className="rounded-lg text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              Ranking
-            </TabsTrigger>
-            <TabsTrigger value="chat" className="rounded-lg text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              Chat
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex justify-center px-5 mt-3">
+            <TabsList className="grid w-full max-w-[240px] grid-cols-2 bg-secondary/50 rounded-xl">
+              <TabsTrigger value="ranking" className="rounded-lg text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                Ranking
+              </TabsTrigger>
+              <TabsTrigger value="chat" className="rounded-lg text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                Chat
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="ranking" className="flex-1 overflow-y-auto px-5 py-4 space-y-5 mt-0">
             {isLoading ? <RankingSkeleton /> : ranking ? <RankingStats ranking={ranking} /> : <EmptyState />}
