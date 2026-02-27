@@ -1,13 +1,14 @@
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
 import habalLogo from "@/assets/habal-logo.png";
 import {
   Bike, LogOut, Home, MapPin, Clock, DollarSign, Users,
-  Navigation, Settings, Shield, BarChart3, Car, UserCheck, Star,
+  Navigation, Settings, Shield, BarChart3, Car, UserCheck, Star, User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { UserProfileSheet } from "@/components/UserProfile";
 
 type NavItem = { label: string; icon: React.ElementType; path: string };
 
@@ -53,6 +54,7 @@ export default function DashboardLayout({ children, fullScreen = false }: Dashbo
   const location = useLocation();
   const primaryRole = roles[0] || "customer";
   const navItems = roleNavItems[primaryRole] || roleNavItems.customer;
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -70,14 +72,25 @@ export default function DashboardLayout({ children, fullScreen = false }: Dashbo
             <p className="text-[10px] capitalize text-muted-foreground font-medium">{primaryRole}</p>
           </div>
         </div>
-        <button
-          onClick={handleSignOut}
-          className="flex items-center gap-1.5 rounded-xl bg-secondary px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors active:bg-muted"
-        >
-          <LogOut className="h-3.5 w-3.5" />
-          Exit
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setProfileOpen(true)}
+            className="flex items-center justify-center rounded-xl bg-secondary h-8 w-8 text-muted-foreground transition-colors active:bg-muted"
+            aria-label="My Profile"
+          >
+            <User className="h-4 w-4" />
+          </button>
+          <button
+            onClick={handleSignOut}
+            className="flex items-center gap-1.5 rounded-xl bg-secondary px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors active:bg-muted"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            Exit
+          </button>
+        </div>
       </header>
+
+      <UserProfileSheet open={profileOpen} onOpenChange={setProfileOpen} />
 
       {/* Content */}
       <main className={cn(

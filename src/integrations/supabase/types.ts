@@ -345,6 +345,36 @@ export type Database = {
         }
         Relationships: []
       }
+      shoutouts: {
+        Row: {
+          assigned_to: string
+          category: string
+          created_at: string
+          created_by: string
+          id: string
+          message: string | null
+          title: string
+        }
+        Insert: {
+          assigned_to: string
+          category?: string
+          created_at?: string
+          created_by: string
+          id?: string
+          message?: string | null
+          title: string
+        }
+        Update: {
+          assigned_to?: string
+          category?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          message?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string

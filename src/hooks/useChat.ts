@@ -236,6 +236,57 @@ function getImageDimensions(file: File): Promise<{ width: number; height: number
   });
 }
 
+/** Create a new shared channel (operator/admin only) */
+export function useCreateChannel() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      name,
+      description,
+      icon = "hash",
+      channelType = "shared",
+    }: {
+      name: string;
+      description?: string;
+      icon?: string;
+      channelType?: string;
+    }) => {
+      const { data, error } = await supabase
+        .from("chat_channels")
+        .insert({
+          name,
+          description: description || null,
+          icon,
+          channel_type: channelType,
+          rider_id: null,
+        } as any)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["shared-channels"] });
+    },
+  });
+}
+
+/** Delete a channel (operator/admin only) */
+export function useDeleteChannel() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (channelId: string) => {
+      const { error } = await supabase.from("chat_channels").delete().eq("id", channelId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["shared-channels"] });
+    },
+  });
+}
+
 /** Format relative time */
 export function formatRelativeTime(dateStr: string): string {
   const now = Date.now();
