@@ -130,6 +130,51 @@ export type Database = {
           },
         ]
       }
+      dispatch_directives: {
+        Row: {
+          acknowledged_at: string | null
+          cancelled_at: string | null
+          completed_at: string | null
+          created_at: string
+          destination_address: string
+          destination_lat: number | null
+          destination_lng: number | null
+          id: string
+          instructions: string | null
+          operator_id: string
+          rider_id: string
+          status: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          cancelled_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          destination_address: string
+          destination_lat?: number | null
+          destination_lng?: number | null
+          id?: string
+          instructions?: string | null
+          operator_id: string
+          rider_id: string
+          status?: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          cancelled_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          destination_address?: string
+          destination_lat?: number | null
+          destination_lng?: number | null
+          id?: string
+          instructions?: string | null
+          operator_id?: string
+          rider_id?: string
+          status?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -197,6 +242,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      rider_locations: {
+        Row: {
+          heading: number | null
+          id: string
+          is_online: boolean
+          last_seen_at: string
+          lat: number
+          lng: number
+          rider_id: string
+          speed: number | null
+          updated_at: string
+        }
+        Insert: {
+          heading?: number | null
+          id?: string
+          is_online?: boolean
+          last_seen_at?: string
+          lat: number
+          lng: number
+          rider_id: string
+          speed?: number | null
+          updated_at?: string
+        }
+        Update: {
+          heading?: number | null
+          id?: string
+          is_online?: boolean
+          last_seen_at?: string
+          lat?: number
+          lng?: number
+          rider_id?: string
+          speed?: number | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       rides: {
         Row: {
