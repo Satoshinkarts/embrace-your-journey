@@ -4,21 +4,23 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Star, Trophy, TrendingUp, MessageSquare, Award, ChevronLeft, ChevronDown, ChevronUp,
   Send, ImagePlus, X, Loader2, AlertCircle, Megaphone, MessageCircle,
-  Headphones, ScrollText, Hash, User, Bike, Calendar, Clock,
+  Headphones, ScrollText, Hash, User, Bike, Calendar, Clock, Plus, Trash2,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRiderRanking, useRiderReviews, useAllRiderRankings, useRiderRidesWithRatings, type RiderRanking, type AllRiderRanking, type RideWithRating } from "@/hooks/useRiderRanking";
-import { useSharedChannels, useChatMessages, useSendMessage, uploadChatImage, formatRelativeTime, type ChatMessage, type ChatChannel } from "@/hooks/useChat";
+import { useSharedChannels, useChatMessages, useSendMessage, useCreateChannel, useDeleteChannel, uploadChatImage, formatRelativeTime, type ChatMessage, type ChatChannel } from "@/hooks/useChat";
 
 const channelIcons: Record<string, React.ElementType> = {
   megaphone: Megaphone,
   "message-circle": MessageCircle,
   headphones: Headphones,
   "scroll-text": ScrollText,
+  hash: Hash,
 };
 
 function getChannelIcon(icon: string | null): React.ElementType {
@@ -115,29 +117,7 @@ export function RiderRankingChannel({ open, onOpenChange }: { open: boolean; onO
                     {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-12 rounded-xl" />)}
                   </div>
                 ) : (
-                  <div className="space-y-1.5">
-                    {channels?.map((ch, i) => {
-                      const Icon = getChannelIcon(ch.icon);
-                      return (
-                        <motion.button
-                          key={ch.id}
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: i * 0.05 }}
-                          onClick={() => setSelectedChannel(ch)}
-                          className="flex w-full items-center gap-3 rounded-xl px-3.5 py-3 text-left transition-colors hover:bg-secondary/70 active:bg-secondary group"
-                        >
-                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary group-hover:bg-primary/10 transition-colors">
-                            <Icon className="h-4.5 w-4.5 text-muted-foreground group-hover:text-primary transition-colors" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground truncate"># {ch.name}</p>
-                            <p className="text-[10px] text-muted-foreground truncate">{ch.description}</p>
-                          </div>
-                        </motion.button>
-                      );
-                    })}
-                  </div>
+                  <ChannelList channels={channels || []} onSelect={setSelectedChannel} />
                 )}
               </div>
             </motion.div>
@@ -223,39 +203,20 @@ export function OperatorRankingChannel({ open, onOpenChange }: { open: boolean; 
               transition={{ duration: 0.15 }}
               className="flex-1 overflow-y-auto"
             >
-              {/* Channel list */}
+              {/* Channel list with create option */}
               <div className="px-5 py-4 border-b border-border/50">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">
-                  Channels
-                </p>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    Channels
+                  </p>
+                  <CreateChannelButton />
+                </div>
                 {loadingChannels ? (
                   <div className="space-y-2">
                     {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-12 rounded-xl" />)}
                   </div>
                 ) : (
-                  <div className="space-y-1.5">
-                    {channels?.map((ch, i) => {
-                      const Icon = getChannelIcon(ch.icon);
-                      return (
-                        <motion.button
-                          key={ch.id}
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: i * 0.05 }}
-                          onClick={() => setSelectedChannel(ch)}
-                          className="flex w-full items-center gap-3 rounded-xl px-3.5 py-3 text-left transition-colors hover:bg-secondary/70 active:bg-secondary group"
-                        >
-                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary group-hover:bg-primary/10 transition-colors">
-                            <Icon className="h-4.5 w-4.5 text-muted-foreground group-hover:text-primary transition-colors" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground truncate"># {ch.name}</p>
-                            <p className="text-[10px] text-muted-foreground truncate">{ch.description}</p>
-                          </div>
-                        </motion.button>
-                      );
-                    })}
-                  </div>
+                  <ChannelList channels={channels || []} onSelect={setSelectedChannel} canDelete />
                 )}
               </div>
 
@@ -778,6 +739,120 @@ function RiderProfileView({ ranking, rides, loadingRides }: { ranking: RiderRank
           )}
         </AnimatePresence>
       </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+   Channel List (reusable)
+   ═══════════════════════════════════════════════════════ */
+function ChannelList({ channels, onSelect, canDelete = false }: { channels: ChatChannel[]; onSelect: (ch: ChatChannel) => void; canDelete?: boolean }) {
+  const deleteChannel = useDeleteChannel();
+  const defaultChannelNames = ["shoutouts", "general", "support", "system_logs"];
+
+  return (
+    <div className="space-y-1.5">
+      {channels.map((ch, i) => {
+        const Icon = getChannelIcon(ch.icon);
+        const isDeletable = canDelete && !defaultChannelNames.includes(ch.name || "");
+        return (
+          <motion.div
+            key={ch.id}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.05 }}
+            className="flex items-center gap-1"
+          >
+            <button
+              onClick={() => onSelect(ch)}
+              className="flex flex-1 items-center gap-3 rounded-xl px-3.5 py-3 text-left transition-colors hover:bg-secondary/70 active:bg-secondary group"
+            >
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary group-hover:bg-primary/10 transition-colors">
+                <Icon className="h-4.5 w-4.5 text-muted-foreground group-hover:text-primary transition-colors" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground truncate"># {ch.name}</p>
+                <p className="text-[10px] text-muted-foreground truncate">{ch.description}</p>
+              </div>
+            </button>
+            {isDeletable && (
+              <button
+                onClick={() => deleteChannel.mutate(ch.id)}
+                className="shrink-0 h-7 w-7 rounded-lg flex items-center justify-center text-destructive/50 hover:text-destructive hover:bg-destructive/10 transition-colors"
+                disabled={deleteChannel.isPending}
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
+            )}
+          </motion.div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+   Create Channel Button (operator/admin)
+   ═══════════════════════════════════════════════════════ */
+function CreateChannelButton() {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const createChannel = useCreateChannel();
+
+  const handleCreate = async () => {
+    if (!name.trim()) return;
+    try {
+      await createChannel.mutateAsync({
+        name: name.trim().toLowerCase().replace(/\s+/g, "-"),
+        description: description.trim() || undefined,
+      });
+      setName("");
+      setDescription("");
+      setOpen(false);
+    } catch {}
+  };
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-1 text-[10px] text-primary font-medium hover:text-primary/80 transition-colors"
+      >
+        <Plus className="h-3 w-3" />
+        Add
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="absolute right-0 top-6 z-50 w-64 glass-card p-3 space-y-2"
+          >
+            <Input
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="Channel name..."
+              className="h-8 rounded-lg bg-secondary border-border text-xs"
+            />
+            <Input
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              placeholder="Description (optional)..."
+              className="h-8 rounded-lg bg-secondary border-border text-xs"
+            />
+            <div className="flex gap-2">
+              <Button size="sm" variant="ghost" className="flex-1 h-7 rounded-lg text-xs" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+              <Button size="sm" className="flex-1 h-7 rounded-lg text-xs" onClick={handleCreate} disabled={!name.trim() || createChannel.isPending}>
+                {createChannel.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Create"}
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
