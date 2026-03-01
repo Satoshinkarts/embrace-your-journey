@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import ActiveRidesMap from "@/components/ActiveRidesMap";
 import { Badge } from "@/components/ui/badge";
@@ -9,8 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
-import { Users, MapPin, Shield, BarChart3, Trash2, TrendingUp, Trophy, Plus, Ban, CheckCircle, UserPlus, ShieldAlert, ShieldCheck } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Users, MapPin, Shield, BarChart3, Trash2, TrendingUp, Trophy, Plus, Ban, CheckCircle, UserPlus, ShieldAlert, ShieldCheck, Search, Filter, X, Calendar, Phone, User, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { OperatorRankingChannel } from "@/components/RankingChannel";
 
@@ -100,6 +102,10 @@ function UsersView() {
   const [banReason, setBanReason] = useState("");
   const [roleUser, setRoleUser] = useState<any>(null);
   const [newRole, setNewRole] = useState("");
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   const { data: profiles, isLoading } = useQuery({
     queryKey: ["admin-all-profiles"],
@@ -117,8 +123,40 @@ function UsersView() {
       return data;
     },
   });
+  const { data: rides } = useQuery({
+    queryKey: ["admin-user-rides"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("rides").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const getRoles = (userId: string) => allRoles?.filter(r => r.user_id === userId) || [];
+  const getUserRides = (userId: string) => rides?.filter(r => r.customer_id === userId || r.rider_id === userId) || [];
+
+  // Filtered profiles
+  const filteredProfiles = useMemo(() => {
+    if (!profiles) return [];
+    return profiles.filter(p => {
+      // Search by name or phone
+      const q = searchQuery.toLowerCase().trim();
+      if (q) {
+        const matchesName = (p.full_name || "").toLowerCase().includes(q);
+        const matchesPhone = (p.phone || "").toLowerCase().includes(q);
+        if (!matchesName && !matchesPhone) return false;
+      }
+      // Filter by role
+      if (roleFilter !== "all") {
+        const userRoles = getRoles(p.user_id);
+        if (!userRoles.some(r => r.role === roleFilter)) return false;
+      }
+      // Filter by status
+      if (statusFilter === "banned" && !p.is_banned) return false;
+      if (statusFilter === "active" && p.is_banned) return false;
+      return true;
+    });
+  }, [profiles, allRoles, searchQuery, roleFilter, statusFilter]);
 
   // Ban / Unban
   const banMutation = useMutation({
@@ -166,6 +204,8 @@ function UsersView() {
     },
   });
 
+  const hasActiveFilters = searchQuery || roleFilter !== "all" || statusFilter !== "all";
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
@@ -189,80 +229,179 @@ function UsersView() {
         </Dialog>
       </div>
 
+      {/* Search & Filters */}
+      <div className="mb-4 space-y-2.5">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by name or phone..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 h-10 rounded-xl bg-secondary border-border text-foreground placeholder:text-muted-foreground"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <Select value={roleFilter} onValueChange={setRoleFilter}>
+            <SelectTrigger className="h-9 rounded-xl bg-secondary border-border text-xs flex-1">
+              <Filter className="h-3 w-3 mr-1.5 text-muted-foreground" />
+              <SelectValue placeholder="All roles" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All roles</SelectItem>
+              {ALL_ROLES.map(r => (
+                <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="h-9 rounded-xl bg-secondary border-border text-xs flex-1">
+              <SelectValue placeholder="All statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="banned">Banned</SelectItem>
+            </SelectContent>
+          </Select>
+          {hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-9 px-2.5 rounded-xl text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => { setSearchQuery(""); setRoleFilter("all"); setStatusFilter("all"); }}
+            >
+              <X className="h-3 w-3 mr-1" /> Clear
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Results count */}
+      <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2.5">
+        {filteredProfiles.length} user{filteredProfiles.length !== 1 ? "s" : ""}{hasActiveFilters ? " found" : ""}
+      </p>
+
       {isLoading ? <LoadingSkeleton /> : (
         <div className="space-y-2.5">
-          {profiles?.map((p, i) => {
-            const userRoles = getRoles(p.user_id);
-            return (
-              <motion.div key={p.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }} className="glass-card p-4">
-                {/* Header row */}
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-3">
-                    <div className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold ${p.is_banned ? "bg-destructive/20 text-destructive" : "bg-secondary text-foreground"}`}>
-                      {(p.full_name || "?")[0].toUpperCase()}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium text-foreground">{p.full_name || "Unnamed"}</p>
-                        {p.is_banned && (
-                          <Badge className="border border-destructive/30 bg-destructive/10 text-destructive text-[10px]">Banned</Badge>
-                        )}
+          <AnimatePresence mode="popLayout">
+            {filteredProfiles.map((p, i) => {
+              const userRoles = getRoles(p.user_id);
+              return (
+                <motion.div
+                  key={p.id}
+                  layout
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ delay: i * 0.02 }}
+                  className="glass-card p-4 cursor-pointer hover:ring-1 hover:ring-primary/20 transition-all"
+                  onClick={() => setSelectedUser(p)}
+                >
+                  {/* Header row */}
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <div className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold ${p.is_banned ? "bg-destructive/20 text-destructive" : "bg-secondary text-foreground"}`}>
+                        {(p.full_name || "?")[0].toUpperCase()}
                       </div>
-                      <p className="text-[10px] text-muted-foreground">{p.phone || "No phone"}</p>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-foreground">{p.full_name || "Unnamed"}</p>
+                          {p.is_banned && (
+                            <Badge className="border border-destructive/30 bg-destructive/10 text-destructive text-[10px]">Banned</Badge>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">{p.phone || "No phone"}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Roles */}
-                <div className="flex flex-wrap items-center gap-1 mb-3">
-                  {userRoles.map(r => (
-                    <Badge key={r.id} className="border border-info/20 bg-info/10 text-info text-[10px] capitalize gap-1 pr-1">
-                      {r.role as string}
-                      <button
-                        onClick={() => removeRoleMutation.mutate(r.id)}
-                        className="ml-0.5 rounded-full hover:bg-info/20 p-0.5 transition-colors"
-                        title="Remove role"
+                  {/* Roles */}
+                  <div className="flex flex-wrap items-center gap-1 mb-3">
+                    {userRoles.map(r => (
+                      <Badge key={r.id} className="border border-info/20 bg-info/10 text-info text-[10px] capitalize gap-1 pr-1">
+                        {r.role as string}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); removeRoleMutation.mutate(r.id); }}
+                          className="ml-0.5 rounded-full hover:bg-info/20 p-0.5 transition-colors"
+                          title="Remove role"
+                        >
+                          <Trash2 className="h-2.5 w-2.5" />
+                        </button>
+                      </Badge>
+                    ))}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setRoleUser(p); setNewRole(""); }}
+                      className="flex items-center gap-0.5 rounded-full border border-dashed border-border px-2 py-0.5 text-[10px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+                    >
+                      <Plus className="h-2.5 w-2.5" /> Add role
+                    </button>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-2">
+                    {p.is_banned ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 rounded-lg text-xs gap-1 border-primary/30 text-primary hover:bg-primary/10"
+                        onClick={(e) => { e.stopPropagation(); banMutation.mutate({ userId: p.user_id, ban: false }); }}
+                        disabled={banMutation.isPending}
                       >
-                        <Trash2 className="h-2.5 w-2.5" />
-                      </button>
-                    </Badge>
-                  ))}
-                  <button
-                    onClick={() => { setRoleUser(p); setNewRole(""); }}
-                    className="flex items-center gap-0.5 rounded-full border border-dashed border-border px-2 py-0.5 text-[10px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
-                  >
-                    <Plus className="h-2.5 w-2.5" /> Add role
-                  </button>
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-2">
-                  {p.is_banned ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 rounded-lg text-xs gap-1 border-primary/30 text-primary hover:bg-primary/10"
-                      onClick={() => banMutation.mutate({ userId: p.user_id, ban: false })}
-                      disabled={banMutation.isPending}
-                    >
-                      <CheckCircle className="h-3 w-3" /> Unban
-                    </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 rounded-lg text-xs gap-1 border-destructive/30 text-destructive hover:bg-destructive/10"
-                      onClick={() => setBanDialogUser(p)}
-                    >
-                      <Ban className="h-3 w-3" /> Ban
-                    </Button>
-                  )}
-                </div>
-              </motion.div>
-            );
-          })}
+                        <CheckCircle className="h-3 w-3" /> Unban
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 rounded-lg text-xs gap-1 border-destructive/30 text-destructive hover:bg-destructive/10"
+                        onClick={(e) => { e.stopPropagation(); setBanDialogUser(p); }}
+                      >
+                        <Ban className="h-3 w-3" /> Ban
+                      </Button>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+          {filteredProfiles.length === 0 && !isLoading && (
+            <div className="text-center py-12">
+              <Users className="h-8 w-8 mx-auto text-muted-foreground/50 mb-2" />
+              <p className="text-sm text-muted-foreground">No users found</p>
+              {hasActiveFilters && (
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="text-xs mt-1 text-primary"
+                  onClick={() => { setSearchQuery(""); setRoleFilter("all"); setStatusFilter("all"); }}
+                >
+                  Clear filters
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       )}
+
+      {/* User Detail Sheet */}
+      <UserDetailSheet
+        user={selectedUser}
+        open={!!selectedUser}
+        onOpenChange={(open) => { if (!open) setSelectedUser(null); }}
+        roles={selectedUser ? getRoles(selectedUser.user_id) : []}
+        rides={selectedUser ? getUserRides(selectedUser.user_id) : []}
+        onBan={() => { setSelectedUser(null); setBanDialogUser(selectedUser); }}
+        onUnban={() => { banMutation.mutate({ userId: selectedUser.user_id, ban: false }); setSelectedUser(null); }}
+        onAddRole={() => { setRoleUser(selectedUser); setNewRole(""); }}
+      />
 
       {/* Ban confirmation dialog */}
       <Dialog open={!!banDialogUser} onOpenChange={(open) => { if (!open) { setBanDialogUser(null); setBanReason(""); } }}>
@@ -333,6 +472,196 @@ function UsersView() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+// ─── User Detail Sheet ───────────────────────────────────────────────
+
+function UserDetailSheet({
+  user,
+  open,
+  onOpenChange,
+  roles,
+  rides,
+  onBan,
+  onUnban,
+  onAddRole,
+}: {
+  user: any;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  roles: any[];
+  rides: any[];
+  onBan: () => void;
+  onUnban: () => void;
+  onAddRole: () => void;
+}) {
+  if (!user) return null;
+
+  const completedRides = rides.filter(r => r.status === "completed").length;
+  const totalFare = rides.filter(r => r.status === "completed").reduce((s, r) => s + Number(r.fare || 0), 0);
+  const joinedDate = new Date(user.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="w-full sm:max-w-md bg-background border-border overflow-y-auto">
+        <SheetHeader className="pb-0">
+          <SheetTitle className="sr-only">User Profile</SheetTitle>
+        </SheetHeader>
+        <div className="space-y-5 pt-2">
+          {/* Avatar & Name */}
+          <div className="flex items-center gap-4">
+            <div className={`flex h-14 w-14 items-center justify-center rounded-full text-lg font-bold ${user.is_banned ? "bg-destructive/20 text-destructive" : "bg-primary/15 text-primary"}`}>
+              {(user.full_name || "?")[0].toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold text-foreground truncate">{user.full_name || "Unnamed"}</h3>
+                {user.is_banned && (
+                  <Badge className="border border-destructive/30 bg-destructive/10 text-destructive text-[10px] shrink-0">Banned</Badge>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">{user.status_text || user.status_type || "online"}</p>
+            </div>
+          </div>
+
+          <Separator className="bg-border" />
+
+          {/* Info Grid */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex items-start gap-2.5">
+              <Phone className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Phone</p>
+                <p className="text-xs font-medium text-foreground">{user.phone || "Not set"}</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2.5">
+              <Calendar className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Joined</p>
+                <p className="text-xs font-medium text-foreground">{joinedDate}</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2.5">
+              <MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Rides</p>
+                <p className="text-xs font-medium text-foreground">{rides.length} total · {completedRides} completed</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2.5">
+              <TrendingUp className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Revenue</p>
+                <p className="text-xs font-medium text-foreground">₱{totalFare.toFixed(0)}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Bio */}
+          {user.bio && (
+            <>
+              <Separator className="bg-border" />
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Bio</p>
+                <p className="text-xs text-foreground leading-relaxed">{user.bio}</p>
+              </div>
+            </>
+          )}
+
+          <Separator className="bg-border" />
+
+          {/* Roles */}
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Roles</p>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {roles.map(r => (
+                <Badge key={r.id} className="border border-info/20 bg-info/10 text-info text-[10px] capitalize">
+                  {r.role as string}
+                </Badge>
+              ))}
+              {roles.length === 0 && <p className="text-xs text-muted-foreground italic">No roles assigned</p>}
+              <button
+                onClick={onAddRole}
+                className="flex items-center gap-0.5 rounded-full border border-dashed border-border px-2.5 py-0.5 text-[10px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+              >
+                <Plus className="h-2.5 w-2.5" /> Add
+              </button>
+            </div>
+          </div>
+
+          {/* Ban Info */}
+          {user.is_banned && (
+            <>
+              <Separator className="bg-border" />
+              <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <ShieldAlert className="h-3.5 w-3.5 text-destructive" />
+                  <p className="text-xs font-medium text-destructive">Account Banned</p>
+                </div>
+                {user.ban_reason && (
+                  <p className="text-[11px] text-destructive/80 mt-1">{user.ban_reason}</p>
+                )}
+                {user.banned_at && (
+                  <p className="text-[10px] text-muted-foreground mt-1.5">
+                    Banned on {new Date(user.banned_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+
+          <Separator className="bg-border" />
+
+          {/* Recent Rides */}
+          {rides.length > 0 && (
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Recent Rides</p>
+              <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                {rides.slice(0, 5).map(ride => (
+                  <div key={ride.id} className="flex items-center justify-between rounded-lg bg-secondary/50 px-3 py-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] text-foreground truncate">{ride.pickup_address} → {ride.dropoff_address}</p>
+                      <p className="text-[10px] text-muted-foreground">{new Date(ride.created_at).toLocaleDateString()}</p>
+                    </div>
+                    <Badge className={`shrink-0 ml-2 text-[9px] capitalize ${
+                      ride.status === "completed" ? "bg-primary/10 text-primary border-primary/30" :
+                      ride.status === "cancelled" ? "bg-destructive/10 text-destructive border-destructive/30" :
+                      "bg-warning/10 text-warning border-warning/30"
+                    } border`}>
+                      {(ride.status as string).replace("_", " ")}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex gap-2 pt-2">
+            {user.is_banned ? (
+              <Button
+                size="sm"
+                className="flex-1 rounded-xl gap-1.5 bg-primary text-primary-foreground"
+                onClick={onUnban}
+              >
+                <CheckCircle className="h-3.5 w-3.5" /> Unban User
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1 rounded-xl gap-1.5 border-destructive/30 text-destructive hover:bg-destructive/10"
+                onClick={onBan}
+              >
+                <Ban className="h-3.5 w-3.5" /> Ban User
+              </Button>
+            )}
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 
