@@ -299,10 +299,13 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          ban_reason: string | null
+          banned_at: string | null
           bio: string | null
           created_at: string
           full_name: string | null
           id: string
+          is_banned: boolean
           phone: string | null
           status_text: string | null
           status_type: string
@@ -311,10 +314,13 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          ban_reason?: string | null
+          banned_at?: string | null
           bio?: string | null
           created_at?: string
           full_name?: string | null
           id?: string
+          is_banned?: boolean
           phone?: string | null
           status_text?: string | null
           status_type?: string
@@ -323,10 +329,13 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          ban_reason?: string | null
+          banned_at?: string | null
           bio?: string | null
           created_at?: string
           full_name?: string | null
           id?: string
+          is_banned?: boolean
           phone?: string | null
           status_text?: string | null
           status_type?: string

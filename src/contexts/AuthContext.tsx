@@ -9,6 +9,7 @@ interface AuthContextType {
   user: User | null;
   roles: AppRole[];
   loading: boolean;
+  isBanned: boolean;
   signUp: (email: string, password: string, fullName: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -28,6 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isBanned, setIsBanned] = useState(false);
 
   const fetchRoles = async (userId: string) => {
     const { data } = await supabase
@@ -39,13 +41,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const checkBanStatus = async (userId: string) => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("is_banned")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (data?.is_banned) {
+      setIsBanned(true);
+      await supabase.auth.signOut();
+      return true;
+    }
+    setIsBanned(false);
+    return false;
+  };
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          setTimeout(() => fetchRoles(session.user.id), 0);
+          const banned = await checkBanStatus(session.user.id);
+          if (!banned) {
+            setTimeout(() => fetchRoles(session.user.id), 0);
+          }
         } else {
           setRoles([]);
         }
@@ -78,8 +98,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
+    // Check ban after successful sign-in
+    if (signInData.user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_banned, ban_reason")
+        .eq("user_id", signInData.user.id)
+        .maybeSingle();
+      if (profile?.is_banned) {
+        await supabase.auth.signOut();
+        throw new Error(profile.ban_reason ? `Account banned: ${profile.ban_reason}` : "Your account has been banned. Contact support.");
+      }
+    }
   };
 
   const signOut = async () => {
@@ -90,7 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const hasRole = (role: AppRole) => roles.includes(role);
 
   return (
-    <AuthContext.Provider value={{ session, user, roles, loading, signUp, signIn, signOut, hasRole }}>
+    <AuthContext.Provider value={{ session, user, roles, loading, isBanned, signUp, signIn, signOut, hasRole }}>
       {children}
     </AuthContext.Provider>
   );
