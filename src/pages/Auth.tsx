@@ -173,6 +173,44 @@ export default function Auth() {
             <>Already have an account?{" "}<button onClick={() => setMode("login")} className="font-medium text-primary">Sign in</button></>
           )}
         </p>
+
+        {/* Temporary demo buttons — REMOVE BEFORE PRODUCTION */}
+        {mode === "login" && (
+          <div className="mt-6 rounded-xl border border-warning/30 bg-warning/5 p-4">
+            <p className="text-[10px] uppercase tracking-wider text-warning font-medium mb-3 text-center">⚠️ Demo Mode — Remove Before Production</p>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { label: "Customer", email: "demo-customer@habal.local" },
+                { label: "Rider", email: "demo-rider@habal.local" },
+                { label: "Dispatcher", email: "demo-dispatcher@habal.local" },
+                { label: "Operator", email: "demo-operator@habal.local" },
+                { label: "Admin", email: "demo-admin@habal.local" },
+              ].map((demo) => (
+                <Button
+                  key={demo.label}
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="rounded-lg text-xs border-warning/20 text-warning hover:bg-warning/10"
+                  disabled={loading}
+                  onClick={async () => {
+                    setLoading(true);
+                    try {
+                      await signIn(demo.email, "demo-password-123");
+                      navigate("/dashboard");
+                    } catch (err: any) {
+                      toast({ title: "Error", description: err.message, variant: "destructive" });
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                >
+                  {demo.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
       </motion.div>
     </div>
   );
