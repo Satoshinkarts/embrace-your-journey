@@ -57,23 +57,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          const banned = await checkBanStatus(session.user.id);
-          if (!banned) {
-            setTimeout(() => fetchRoles(session.user.id), 0);
-          }
-        } else {
-          setRoles([]);
-        }
-        setLoading(false);
-      }
-    );
+    let mounted = true;
 
+    // Restore session first — this is fast (reads from storage)
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -82,7 +70,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    // Listen for subsequent auth changes (sign-in, sign-out, token refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        if (!mounted) return;
+        setSession(session);
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          // Don't await async work inside the callback — it blocks the listener
+          checkBanStatus(session.user.id);
+          fetchRoles(session.user.id);
+        } else {
+          setRoles([]);
+        }
+        setLoading(false);
+      }
+    );
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signUp = async (email: string, password: string, fullName: string) => {
