@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Navigation, Clock, CheckCircle, XCircle, Loader2, X, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { calculateFare } from "@/lib/fareCalculation";
+import { useActiveZones, type Zone } from "@/hooks/useZones";
 
 type RideStatus = "requested" | "accepted" | "en_route" | "picked_up" | "completed" | "cancelled";
 
@@ -124,6 +126,8 @@ function BookRideSection() {
   const [dropoffCoords, setDropoffCoords] = useState<[number, number] | null>(null);
   const [locatingPickup, setLocatingPickup] = useState(true);
   const [mapboxToken, setMapboxToken] = useState<string | null>(null);
+  const { data: zones } = useActiveZones();
+  const [matchedZone, setMatchedZone] = useState<Zone | null>(null);
 
   // Fetch mapbox token for geocoding
   useEffect(() => {
@@ -145,10 +149,15 @@ function BookRideSection() {
     if (mapboxToken) {
       const addr = await reverseGeocode(lng, lat, mapboxToken);
       setPickup(addr);
+      // Try to match zone by name in the address
+      if (zones?.length) {
+        const found = zones.find(z => addr.toLowerCase().includes(z.name.toLowerCase()));
+        setMatchedZone(found || null);
+      }
     } else {
       setPickup("Locating address...");
     }
-  }, [mapboxToken, pickupMode]);
+  }, [mapboxToken, pickupMode, zones]);
 
   // Retry reverse geocode when token arrives and pickup is still pending
   useEffect(() => {
@@ -189,6 +198,7 @@ function BookRideSection() {
         pickup_lng: pickupCoords?.[0] || null,
         dropoff_lat: dropoffCoords?.[1] || null,
         dropoff_lng: dropoffCoords?.[0] || null,
+        zone_id: matchedZone?.id || null,
         status: "requested" as any,
       });
       if (error) throw error;
@@ -227,6 +237,10 @@ function BookRideSection() {
       if (mapboxToken) {
         const addr = await reverseGeocode(lng, lat, mapboxToken);
         setPickup(addr);
+        if (zones?.length) {
+          const found = zones.find(z => addr.toLowerCase().includes(z.name.toLowerCase()));
+          setMatchedZone(found || null);
+        }
       } else {
         setPickup("Locating address...");
       }
@@ -272,8 +286,7 @@ function BookRideSection() {
           setRouteCoords(route.geometry.coordinates);
           const distanceKm = route.distance / 1000;
           const durationMin = Math.ceil(route.duration / 60);
-          // Fare: ₱40 base + ₱10/km
-          const fare = 40 + distanceKm * 10;
+          const fare = calculateFare(distanceKm, matchedZone?.premium_fee);
           setRouteEstimate({ distanceKm, durationMin, fare });
         }
       } catch {
@@ -350,6 +363,7 @@ function BookRideSection() {
                 }}
                 mapboxToken={mapboxToken}
                 routeEstimate={routeEstimate}
+                matchedZone={matchedZone}
               />
             )}
           </AnimatePresence>
@@ -435,7 +449,7 @@ function ActiveRideCard({ ride, onCancel, cancelling }: { ride: any; onCancel: (
 }
 
 function BookingCard({
-  pickup, locatingPickup, dropoff, dropoffInput, setDropoffInput, setDropoff, setDropoffCoords, onBook, booking, canBook, pickupMode, onTogglePickupMode, mapboxToken, routeEstimate,
+  pickup, locatingPickup, dropoff, dropoffInput, setDropoffInput, setDropoff, setDropoffCoords, onBook, booking, canBook, pickupMode, onTogglePickupMode, mapboxToken, routeEstimate, matchedZone,
 }: {
   pickup: string; locatingPickup: boolean;
   dropoff: string; dropoffInput: string;
@@ -447,6 +461,7 @@ function BookingCard({
   onTogglePickupMode: () => void;
   mapboxToken: string | null;
   routeEstimate: { distanceKm: number; durationMin: number; fare: number } | null;
+  matchedZone: Zone | null;
 }) {
   const [suggestions, setSuggestions] = useState<Array<{ place_name: string; center: [number, number] }>>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -568,6 +583,17 @@ function BookingCard({
             </AnimatePresence>
           </div>
         </div>
+
+        {/* Zone indicator */}
+        {matchedZone && (
+          <div className="mt-3 flex items-center gap-2">
+            <MapPin className="h-3.5 w-3.5 text-primary" />
+            <span className="text-xs text-muted-foreground">Zone: <span className="font-medium text-foreground">{matchedZone.name}</span></span>
+            {matchedZone.premium_fee > 0 && (
+              <Badge className="border border-warning/20 bg-warning/10 text-warning text-[10px]">+₱{Number(matchedZone.premium_fee).toFixed(0)} premium</Badge>
+            )}
+          </div>
+        )}
 
         {/* Fare & Distance Estimate */}
         {routeEstimate && (

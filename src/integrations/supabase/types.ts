@@ -267,6 +267,35 @@ export type Database = {
         }
         Relationships: []
       }
+      operator_zones: {
+        Row: {
+          assigned_at: string
+          id: string
+          operator_id: string
+          zone_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          id?: string
+          operator_id: string
+          zone_id: string
+        }
+        Update: {
+          assigned_at?: string
+          id?: string
+          operator_id?: string
+          zone_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operator_zones_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -401,6 +430,7 @@ export type Database = {
           started_at: string | null
           status: Database["public"]["Enums"]["ride_status"]
           updated_at: string
+          zone_id: string | null
         }
         Insert: {
           cancel_reason?: string | null
@@ -422,6 +452,7 @@ export type Database = {
           started_at?: string | null
           status?: Database["public"]["Enums"]["ride_status"]
           updated_at?: string
+          zone_id?: string | null
         }
         Update: {
           cancel_reason?: string | null
@@ -443,8 +474,17 @@ export type Database = {
           started_at?: string | null
           status?: Database["public"]["Enums"]["ride_status"]
           updated_at?: string
+          zone_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "rides_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "zones"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       shoutouts: {
         Row: {
@@ -527,6 +567,42 @@ export type Database = {
           plate_number?: string
           rider_id?: string
           vehicle_type?: string
+        }
+        Relationships: []
+      }
+      zones: {
+        Row: {
+          boundary: Json | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          premium_fee: number
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          boundary?: Json | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          premium_fee?: number
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          boundary?: Json | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          premium_fee?: number
+          slug?: string
+          updated_at?: string
         }
         Relationships: []
       }
