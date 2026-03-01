@@ -36,7 +36,8 @@ function RoleGuard({ allowedRoles, children }: { allowedRoles: AppRole[]; childr
   const { session, roles, loading } = useAuth();
   if (loading) return <div className="flex min-h-screen items-center justify-center bg-background text-foreground">Loading...</div>;
   if (!session) return <Navigate to="/auth" replace />;
-  if (!roles.some((r) => allowedRoles.includes(r))) {
+  const isAdmin = roles.includes("admin");
+  if (!isAdmin && !roles.some((r) => allowedRoles.includes(r))) {
     return <Navigate to="/dashboard" replace />;
   }
   return <>{children}</>;
