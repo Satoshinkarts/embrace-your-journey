@@ -16,6 +16,7 @@ const roleNavItems: Record<string, NavItem[]> = {
   customer: [
     { label: "Book", icon: MapPin, path: "/dashboard" },
     { label: "Rides", icon: Clock, path: "/dashboard/rides" },
+    { label: "Wallet", icon: Wallet, path: "/dashboard/wallet" },
     { label: "Ratings", icon: Star, path: "/dashboard/ratings" },
   ],
   rider: [
@@ -32,6 +33,7 @@ const roleNavItems: Record<string, NavItem[]> = {
     { label: "Fleet", icon: Car, path: "/dashboard" },
     { label: "Map", icon: Navigation, path: "/dashboard/map" },
     { label: "Riders", icon: Users, path: "/dashboard/riders" },
+    { label: "Wallets", icon: Wallet, path: "/dashboard/operator-wallets" },
     { label: "Reports", icon: BarChart3, path: "/dashboard/reports" },
   ],
   admin: [

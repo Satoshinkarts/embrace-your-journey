@@ -8,7 +8,8 @@ import MapboxMap from "@/components/MapboxMap";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Navigation, Clock, CheckCircle, XCircle, Loader2, X, Star } from "lucide-react";
+import { MapPin, Navigation, Clock, CheckCircle, XCircle, Loader2, X, Star, Wallet } from "lucide-react";
+import WalletCard from "@/components/WalletCard";
 import { useToast } from "@/hooks/use-toast";
 import { calculateFare } from "@/lib/fareCalculation";
 import { useActiveZones, type Zone } from "@/hooks/useZones";
@@ -46,6 +47,17 @@ export function CustomerRatings() {
       <div>
         <h2 className="mb-4 text-lg font-bold text-foreground">My Ratings</h2>
         <RatingsSection />
+      </div>
+    </DashboardLayout>
+  );
+}
+
+export function CustomerWallet() {
+  return (
+    <DashboardLayout>
+      <div>
+        <h2 className="mb-4 text-lg font-bold text-foreground">My Wallet</h2>
+        <WalletCard />
       </div>
     </DashboardLayout>
   );
