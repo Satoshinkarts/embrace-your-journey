@@ -4,8 +4,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 // Customer
@@ -21,10 +23,22 @@ import AdminDashboard, { AdminUsers, AdminAllRides, AdminMap, AdminRoles } from 
 
 const queryClient = new QueryClient();
 
+type AppRole = "customer" | "rider" | "dispatcher" | "operator" | "admin";
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
   if (loading) return <div className="flex min-h-screen items-center justify-center bg-background text-foreground">Loading...</div>;
   if (!session) return <Navigate to="/auth" replace />;
+  return <>{children}</>;
+}
+
+function RoleGuard({ allowedRoles, children }: { allowedRoles: AppRole[]; children: React.ReactNode }) {
+  const { session, roles, loading } = useAuth();
+  if (loading) return <div className="flex min-h-screen items-center justify-center bg-background text-foreground">Loading...</div>;
+  if (!session) return <Navigate to="/auth" replace />;
+  if (!roles.some((r) => allowedRoles.includes(r))) {
+    return <Navigate to="/dashboard" replace />;
+  }
   return <>{children}</>;
 }
 
@@ -51,32 +65,33 @@ const AppRoutes = () => (
   <Routes>
     <Route path="/" element={<Index />} />
     <Route path="/auth" element={<PublicOnlyRoute><Auth /></PublicOnlyRoute>} />
+    <Route path="/reset-password" element={<ResetPassword />} />
 
     {/* Role-aware main dashboard */}
     <Route path="/dashboard" element={<ProtectedRoute><RoleDashboard /></ProtectedRoute>} />
 
     {/* Customer routes */}
-    <Route path="/dashboard/rides" element={<ProtectedRoute><CustomerRides /></ProtectedRoute>} />
-    <Route path="/dashboard/ratings" element={<ProtectedRoute><CustomerRatings /></ProtectedRoute>} />
+    <Route path="/dashboard/rides" element={<RoleGuard allowedRoles={["customer"]}><CustomerRides /></RoleGuard>} />
+    <Route path="/dashboard/ratings" element={<RoleGuard allowedRoles={["customer"]}><CustomerRatings /></RoleGuard>} />
 
     {/* Rider routes */}
-    <Route path="/dashboard/trips" element={<ProtectedRoute><RiderTrips /></ProtectedRoute>} />
-    <Route path="/dashboard/earnings" element={<ProtectedRoute><RiderEarnings /></ProtectedRoute>} />
+    <Route path="/dashboard/trips" element={<RoleGuard allowedRoles={["rider"]}><RiderTrips /></RoleGuard>} />
+    <Route path="/dashboard/earnings" element={<RoleGuard allowedRoles={["rider"]}><RiderEarnings /></RoleGuard>} />
 
     {/* Dispatcher routes */}
-    <Route path="/dashboard/assign" element={<ProtectedRoute><DispatcherAssign /></ProtectedRoute>} />
-    <Route path="/dashboard/stats" element={<ProtectedRoute><DispatcherStats /></ProtectedRoute>} />
+    <Route path="/dashboard/assign" element={<RoleGuard allowedRoles={["dispatcher", "admin"]}><DispatcherAssign /></RoleGuard>} />
+    <Route path="/dashboard/stats" element={<RoleGuard allowedRoles={["dispatcher", "admin"]}><DispatcherStats /></RoleGuard>} />
 
     {/* Operator routes */}
-    <Route path="/dashboard/map" element={<ProtectedRoute><OperatorMap /></ProtectedRoute>} />
-    <Route path="/dashboard/riders" element={<ProtectedRoute><OperatorRiders /></ProtectedRoute>} />
-    <Route path="/dashboard/reports" element={<ProtectedRoute><OperatorReports /></ProtectedRoute>} />
+    <Route path="/dashboard/map" element={<RoleGuard allowedRoles={["operator", "admin"]}><OperatorMap /></RoleGuard>} />
+    <Route path="/dashboard/riders" element={<RoleGuard allowedRoles={["operator", "admin"]}><OperatorRiders /></RoleGuard>} />
+    <Route path="/dashboard/reports" element={<RoleGuard allowedRoles={["operator", "admin"]}><OperatorReports /></RoleGuard>} />
 
     {/* Admin routes */}
-    <Route path="/dashboard/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
-    <Route path="/dashboard/all-rides" element={<ProtectedRoute><AdminAllRides /></ProtectedRoute>} />
-    <Route path="/dashboard/admin-map" element={<ProtectedRoute><AdminMap /></ProtectedRoute>} />
-    <Route path="/dashboard/roles" element={<ProtectedRoute><AdminRoles /></ProtectedRoute>} />
+    <Route path="/dashboard/users" element={<RoleGuard allowedRoles={["admin"]}><AdminUsers /></RoleGuard>} />
+    <Route path="/dashboard/all-rides" element={<RoleGuard allowedRoles={["admin"]}><AdminAllRides /></RoleGuard>} />
+    <Route path="/dashboard/admin-map" element={<RoleGuard allowedRoles={["admin"]}><AdminMap /></RoleGuard>} />
+    <Route path="/dashboard/roles" element={<RoleGuard allowedRoles={["admin"]}><AdminRoles /></RoleGuard>} />
 
     <Route path="*" element={<NotFound />} />
   </Routes>
@@ -85,13 +100,15 @@ const AppRoutes = () => (
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
-      </BrowserRouter>
+      <ErrorBoundary fallbackTitle="Habal encountered an error">
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <AppRoutes />
+          </AuthProvider>
+        </BrowserRouter>
+      </ErrorBoundary>
     </TooltipProvider>
   </QueryClientProvider>
 );

@@ -177,12 +177,12 @@ function ActiveRideOrAvailable() {
 
   const acceptMutation = useMutation({
     mutationFn: async (rideId: string) => {
-      const { error } = await supabase.from("rides").update({
-        rider_id: user!.id,
-        status: "accepted" as any,
-        fare: parseFloat((Math.random() * 80 + 30).toFixed(2)),
-      }).eq("id", rideId).eq("status", "requested" as any);
+      const { data, error } = await supabase.rpc("accept_ride", {
+        _ride_id: rideId,
+        _rider_id: user!.id,
+      });
       if (error) throw error;
+      if (data === false) throw new Error("Ride is no longer available");
     },
     onSuccess: () => {
       toast({ title: "Ride accepted!" });

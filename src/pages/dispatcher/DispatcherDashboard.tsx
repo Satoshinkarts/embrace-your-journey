@@ -124,9 +124,13 @@ function AssignView() {
 
   const assignMutation = useMutation({
     mutationFn: async ({ rideId, riderId }: { rideId: string; riderId: string }) => {
+      // Get ride distance for fare calculation
+      const { data: ride } = await supabase.from("rides").select("distance_km").eq("id", rideId).single();
+      const distanceKm = ride?.distance_km ?? 3;
+      const fare = 40 + Number(distanceKm) * 10;
       const { error } = await supabase.from("rides").update({
         rider_id: riderId, status: "accepted" as any,
-        fare: parseFloat((Math.random() * 80 + 30).toFixed(2)),
+        fare: Math.round(fare * 100) / 100,
       }).eq("id", rideId);
       if (error) throw error;
     },

@@ -2,20 +2,24 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { Eye, EyeOff, ArrowLeft, Mail } from "lucide-react";
 import habalLogo from "@/assets/habal-logo.png";
 import { useToast } from "@/hooks/use-toast";
 
+type AuthMode = "login" | "signup" | "forgot";
+
 export default function Auth() {
-  const [isLogin, setIsLogin] = useState(true);
+  const [mode, setMode] = useState<AuthMode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -24,7 +28,14 @@ export default function Auth() {
     e.preventDefault();
     setLoading(true);
     try {
-      if (isLogin) {
+      if (mode === "forgot") {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) throw error;
+        setResetSent(true);
+        toast({ title: "Reset email sent!", description: "Check your inbox for the reset link." });
+      } else if (mode === "login") {
         await signIn(email, password);
         navigate("/dashboard");
       } else {
@@ -38,13 +49,33 @@ export default function Auth() {
     }
   };
 
+  if (mode === "forgot" && resetSent) {
+    return (
+      <div className="flex min-h-[100dvh] flex-col bg-background px-5">
+        <div className="safe-top pt-4">
+          <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground active:text-foreground">
+            <ArrowLeft className="h-4 w-4" />Back
+          </Link>
+        </div>
+        <div className="flex flex-1 flex-col items-center justify-center py-8 text-center">
+          <Mail className="mb-4 h-12 w-12 text-primary" />
+          <h2 className="text-lg font-bold text-foreground">Check your email</h2>
+          <p className="mt-2 text-sm text-muted-foreground max-w-xs">
+            We sent a password reset link to <span className="font-medium text-foreground">{email}</span>
+          </p>
+          <Button variant="outline" className="mt-6 rounded-xl" onClick={() => { setMode("login"); setResetSent(false); }}>
+            Back to Sign In
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-[100dvh] flex-col bg-background px-5">
-      {/* Back button */}
       <div className="safe-top pt-4">
         <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground active:text-foreground">
-          <ArrowLeft className="h-4 w-4" />
-          Back
+          <ArrowLeft className="h-4 w-4" />Back
         </Link>
       </div>
 
@@ -54,27 +85,29 @@ export default function Auth() {
         transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
         className="flex flex-1 flex-col justify-center py-8"
       >
-        {/* Logo */}
         <div className="mb-8 text-center">
           <img src={habalLogo} alt="Habal" className="mx-auto mb-4 h-16 w-16 object-contain" />
           <h1 className="text-2xl font-bold text-foreground">
-            {isLogin ? "Welcome back" : "Create account"}
+            {mode === "forgot" ? "Reset Password" : mode === "login" ? "Welcome back" : "Create account"}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {isLogin ? "Sign in to continue" : "Join the Iloilo Verified Rider Network"}
+            {mode === "forgot"
+              ? "Enter your email to receive a reset link"
+              : mode === "login"
+              ? "Sign in to continue"
+              : "Join the Iloilo Verified Rider Network"}
           </p>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          {!isLogin && (
+          {mode === "signup" && (
             <div className="space-y-2">
               <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Full Name</Label>
               <Input
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Juan Dela Cruz"
-                required={!isLogin}
+                required
                 className="h-12 rounded-xl bg-secondary border-border text-foreground placeholder:text-muted-foreground"
               />
             </div>
@@ -90,40 +123,55 @@ export default function Auth() {
               className="h-12 rounded-xl bg-secondary border-border text-foreground placeholder:text-muted-foreground"
             />
           </div>
-          <div className="space-y-2">
-            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Password</Label>
-            <div className="relative">
-              <Input
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                minLength={6}
-                className="h-12 rounded-xl bg-secondary border-border text-foreground placeholder:text-muted-foreground pr-12"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-              >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
+          {mode !== "forgot" && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Password</Label>
+                {mode === "login" && (
+                  <button type="button" onClick={() => setMode("forgot")} className="text-xs text-primary font-medium">
+                    Forgot password?
+                  </button>
+                )}
+              </div>
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  minLength={6}
+                  className="h-12 rounded-xl bg-secondary border-border text-foreground placeholder:text-muted-foreground pr-12"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
-          </div>
+          )}
           <Button type="submit" className="h-12 w-full rounded-xl text-sm font-semibold" disabled={loading}>
-            {loading ? "Loading..." : isLogin ? "Sign In" : "Create Account"}
+            {loading
+              ? "Loading..."
+              : mode === "forgot"
+              ? "Send Reset Link"
+              : mode === "login"
+              ? "Sign In"
+              : "Create Account"}
           </Button>
         </form>
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
-          {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
-          <button
-            onClick={() => setIsLogin(!isLogin)}
-            className="font-medium text-primary"
-          >
-            {isLogin ? "Sign up" : "Sign in"}
-          </button>
+          {mode === "forgot" ? (
+            <button onClick={() => setMode("login")} className="font-medium text-primary">Back to Sign In</button>
+          ) : mode === "login" ? (
+            <>Don't have an account?{" "}<button onClick={() => setMode("signup")} className="font-medium text-primary">Sign up</button></>
+          ) : (
+            <>Already have an account?{" "}<button onClick={() => setMode("login")} className="font-medium text-primary">Sign in</button></>
+          )}
         </p>
       </motion.div>
     </div>
