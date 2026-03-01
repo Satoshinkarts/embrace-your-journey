@@ -1,0 +1,12 @@
+-- DOCUMENTATION ONLY: Leaked Password Protection
+-- 
+-- The Supabase database linter flagged that "Leaked Password Protection" is disabled.
+-- This is an Auth setting (not a schema change) that must be enabled via the
+-- Lovable Cloud auth configuration or Supabase dashboard:
+--   Auth → Settings → Enable "Leaked Password Protection"
+--
+-- When enabled, Supabase checks passwords against the HaveIBeenPwned database
+-- and rejects sign-ups / password changes using known-compromised passwords.
+--
+-- This migration is intentionally a no-op to document the requirement.
+SELECT 1;
