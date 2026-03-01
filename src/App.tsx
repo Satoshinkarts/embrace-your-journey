@@ -14,7 +14,7 @@ import NotFound from "./pages/NotFound";
 import AdminZones from "./pages/admin/AdminZones";
 
 // Customer
-import CustomerDashboard, { CustomerRides, CustomerRatings } from "./pages/customer/CustomerDashboard";
+import CustomerDashboard, { CustomerRides, CustomerRatings, CustomerWallet } from "./pages/customer/CustomerDashboard";
 // Rider
 import RiderDashboard, { RiderTrips, RiderEarnings } from "./pages/rider/RiderDashboard";
 // Dispatcher
@@ -24,6 +24,7 @@ import OperatorDashboard, { OperatorMap, OperatorRiders, OperatorReports } from 
 // Admin
 import AdminDashboard, { AdminUsers, AdminAllRides, AdminMap, AdminRoles } from "./pages/admin/AdminDashboard";
 import AdminWallets from "./pages/admin/AdminWallets";
+import OperatorWallets from "./pages/operator/OperatorWallets";
 
 const queryClient = new QueryClient();
 
@@ -77,6 +78,7 @@ const AppRoutes = () => (
 
     {/* Customer routes */}
     <Route path="/dashboard/rides" element={<RoleGuard allowedRoles={["customer"]}><CustomerRides /></RoleGuard>} />
+    <Route path="/dashboard/wallet" element={<RoleGuard allowedRoles={["customer"]}><CustomerWallet /></RoleGuard>} />
     <Route path="/dashboard/ratings" element={<RoleGuard allowedRoles={["customer"]}><CustomerRatings /></RoleGuard>} />
 
     {/* Rider routes */}
@@ -90,6 +92,7 @@ const AppRoutes = () => (
     {/* Operator routes */}
     <Route path="/dashboard/map" element={<RoleGuard allowedRoles={["operator", "admin"]}><OperatorMap /></RoleGuard>} />
     <Route path="/dashboard/riders" element={<RoleGuard allowedRoles={["operator", "admin"]}><OperatorRiders /></RoleGuard>} />
+    <Route path="/dashboard/operator-wallets" element={<RoleGuard allowedRoles={["operator"]}><OperatorWallets /></RoleGuard>} />
     <Route path="/dashboard/reports" element={<RoleGuard allowedRoles={["operator", "admin"]}><OperatorReports /></RoleGuard>} />
 
     {/* Admin routes */}
