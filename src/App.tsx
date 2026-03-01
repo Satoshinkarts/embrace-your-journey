@@ -23,6 +23,7 @@ import DispatcherDashboard, { DispatcherAssign, DispatcherStats } from "./pages/
 import OperatorDashboard, { OperatorMap, OperatorRiders, OperatorReports } from "./pages/operator/OperatorDashboard";
 // Admin
 import AdminDashboard, { AdminUsers, AdminAllRides, AdminMap, AdminRoles } from "./pages/admin/AdminDashboard";
+import AdminWallets from "./pages/admin/AdminWallets";
 
 const queryClient = new QueryClient();
 
@@ -97,6 +98,7 @@ const AppRoutes = () => (
     <Route path="/dashboard/admin-map" element={<RoleGuard allowedRoles={["admin"]}><AdminMap /></RoleGuard>} />
     <Route path="/dashboard/roles" element={<RoleGuard allowedRoles={["admin"]}><AdminRoles /></RoleGuard>} />
     <Route path="/dashboard/zones" element={<RoleGuard allowedRoles={["admin"]}><AdminZones /></RoleGuard>} />
+    <Route path="/dashboard/wallets" element={<RoleGuard allowedRoles={["admin"]}><AdminWallets /></RoleGuard>} />
 
     <Route path="*" element={<NotFound />} />
   </Routes>

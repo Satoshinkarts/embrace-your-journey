@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import habalLogo from "@/assets/habal-logo.png";
 import {
   Bike, LogOut, Home, MapPin, Clock, DollarSign, Users,
-  Navigation, Settings, Shield, BarChart3, Car, UserCheck, Star, User,
+  Navigation, Settings, Shield, BarChart3, Car, UserCheck, Star, User, Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserProfileSheet } from "@/components/UserProfile";
@@ -38,6 +38,7 @@ const roleNavItems: Record<string, NavItem[]> = {
     { label: "Overview", icon: BarChart3, path: "/dashboard" },
     { label: "Map", icon: Navigation, path: "/dashboard/admin-map" },
     { label: "Users", icon: Users, path: "/dashboard/users" },
+    { label: "Wallets", icon: Wallet, path: "/dashboard/wallets" },
     { label: "Rides", icon: MapPin, path: "/dashboard/all-rides" },
     { label: "Zones", icon: MapPin, path: "/dashboard/zones" },
     { label: "Roles", icon: Shield, path: "/dashboard/roles" },
