@@ -1,46 +1,17 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import habalLogo from "@/assets/habal-logo.png";
-import { Bike, Users, Navigation, Settings, Shield, ChevronRight } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { Bike, Shield, MapPin, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-const roles = [
-  { key: "customer", label: "Customer", description: "Book rides & track trips", icon: Users, gradient: "from-primary/20 to-primary/5" },
-  { key: "rider", label: "Rider", description: "Accept trips & earn", icon: Bike, gradient: "from-info/20 to-info/5" },
-  { key: "dispatcher", label: "Dispatcher", description: "Assign & manage", icon: Navigation, gradient: "from-warning/20 to-warning/5" },
-  { key: "operator", label: "Operator", description: "Manage fleet", icon: Settings, gradient: "from-accent/20 to-accent/5" },
-  { key: "admin", label: "Admin", description: "Full system access", icon: Shield, gradient: "from-muted to-muted/50" },
+const features = [
+  { icon: MapPin, title: "GPS-Powered Booking", description: "Precise pickup with high-accuracy GPS" },
+  { icon: Bike, title: "Verified Riders", description: "Every rider is verified and tracked" },
+  { icon: Shield, title: "Safe & Transparent", description: "Real-time tracking, fare estimates, ratings" },
 ];
 
 export default function Index() {
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [loadingRole, setLoadingRole] = useState<string | null>(null);
-
-  const handleDemoLogin = async (roleKey: string) => {
-    setLoadingRole(roleKey);
-    const email = `demo-${roleKey}@habal.local`;
-    const password = "demo-password-123";
-
-    try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-      if (!signInError) { navigate("/dashboard"); return; }
-      const { error: signUpError } = await supabase.auth.signUp({
-        email, password,
-        options: { data: { full_name: `Demo ${roleKey.charAt(0).toUpperCase() + roleKey.slice(1)}` } },
-      });
-      if (signUpError) throw signUpError;
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      navigate("/dashboard");
-    } catch (err: any) {
-      toast({ title: "Demo login failed", description: err.message, variant: "destructive" });
-    } finally {
-      setLoadingRole(null);
-    }
-  };
 
   return (
     <div className="relative flex min-h-[100dvh] flex-col items-center justify-center bg-background px-5 py-12 overflow-hidden">
@@ -65,46 +36,54 @@ export default function Index() {
         </div>
         <h1 className="text-2xl font-bold tracking-tight text-foreground">Habal</h1>
         <p className="mt-1 text-sm text-muted-foreground">Iloilo Verified Rider Network</p>
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-medium text-primary"
-        >
-          <span className="pulse-dot" />
-          <span className="ml-1">DEMO MODE</span>
-        </motion.div>
       </motion.div>
 
-      {/* Role cards */}
-      <div className="relative z-10 w-full max-w-sm space-y-2.5">
-        {roles.map((role, i) => {
-          const Icon = role.icon;
-          const isLoading = loadingRole === role.key;
+      {/* Features */}
+      <div className="relative z-10 w-full max-w-sm space-y-2.5 mb-8">
+        {features.map((feature, i) => {
+          const Icon = feature.icon;
           return (
-            <motion.button
-              key={role.key}
+            <motion.div
+              key={feature.title}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 + i * 0.06, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              onClick={() => handleDemoLogin(role.key)}
-              disabled={!!loadingRole}
-              className={`group flex w-full items-center gap-4 rounded-2xl border border-border/60 bg-gradient-to-r ${role.gradient} p-4 text-left transition-all active:scale-[0.98] disabled:opacity-50`}
+              transition={{ delay: 0.1 + i * 0.08, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              className="flex items-center gap-4 rounded-2xl border border-border/60 bg-gradient-to-r from-primary/10 to-primary/5 p-4"
             >
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-background/50 backdrop-blur-sm">
                 <Icon className="h-5 w-5 text-foreground" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground">{role.label}</p>
-                <p className="text-xs text-muted-foreground">
-                  {isLoading ? "Signing in..." : role.description}
-                </p>
+                <p className="text-sm font-semibold text-foreground">{feature.title}</p>
+                <p className="text-xs text-muted-foreground">{feature.description}</p>
               </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-            </motion.button>
+            </motion.div>
           );
         })}
       </div>
+
+      {/* CTA Buttons */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="relative z-10 w-full max-w-sm space-y-3"
+      >
+        <Button
+          className="h-12 w-full rounded-xl text-sm font-semibold"
+          onClick={() => navigate("/auth")}
+        >
+          Get Started
+          <ChevronRight className="ml-1 h-4 w-4" />
+        </Button>
+        <Button
+          variant="outline"
+          className="h-12 w-full rounded-xl text-sm font-medium"
+          onClick={() => navigate("/auth")}
+        >
+          Sign In
+        </Button>
+      </motion.div>
 
       <motion.p
         initial={{ opacity: 0 }}
@@ -112,7 +91,7 @@ export default function Index() {
         transition={{ delay: 0.6 }}
         className="mt-8 text-center text-xs text-muted-foreground"
       >
-        Tap a role to explore • No account needed
+        Safe rides across Iloilo City
       </motion.p>
     </div>
   );
