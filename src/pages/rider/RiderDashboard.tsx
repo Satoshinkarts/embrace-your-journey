@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { RiderRankingChannel } from "@/components/RankingChannel";
 import { useRiderLocationTracker, useRiderDirectives, useUpdateDirective, type DispatchDirective } from "@/hooks/useRiderTracking";
 import { useUnreadDMCount } from "@/hooks/useUnreadDMs";
+import WalletCard from "@/components/WalletCard";
 
 type RideStatus = "requested" | "accepted" | "en_route" | "picked_up" | "completed" | "cancelled";
 
@@ -419,6 +420,11 @@ function EarningsView() {
   return (
     <div>
       <h2 className="mb-4 text-lg font-bold text-foreground">Earnings</h2>
+
+      {/* Wallet */}
+      <div className="mb-4">
+        <WalletCard />
+      </div>
 
       {/* Main earnings card */}
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="glass-card mb-4 p-5 text-center">
