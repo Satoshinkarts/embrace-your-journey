@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
+import AdminZones from "./pages/admin/AdminZones";
 
 // Customer
 import CustomerDashboard, { CustomerRides, CustomerRatings } from "./pages/customer/CustomerDashboard";
@@ -93,6 +94,7 @@ const AppRoutes = () => (
     <Route path="/dashboard/all-rides" element={<RoleGuard allowedRoles={["admin"]}><AdminAllRides /></RoleGuard>} />
     <Route path="/dashboard/admin-map" element={<RoleGuard allowedRoles={["admin"]}><AdminMap /></RoleGuard>} />
     <Route path="/dashboard/roles" element={<RoleGuard allowedRoles={["admin"]}><AdminRoles /></RoleGuard>} />
+    <Route path="/dashboard/zones" element={<RoleGuard allowedRoles={["admin"]}><AdminZones /></RoleGuard>} />
 
     <Route path="*" element={<NotFound />} />
   </Routes>

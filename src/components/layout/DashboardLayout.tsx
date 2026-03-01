@@ -39,6 +39,7 @@ const roleNavItems: Record<string, NavItem[]> = {
     { label: "Map", icon: Navigation, path: "/dashboard/admin-map" },
     { label: "Users", icon: Users, path: "/dashboard/users" },
     { label: "Rides", icon: MapPin, path: "/dashboard/all-rides" },
+    { label: "Zones", icon: MapPin, path: "/dashboard/zones" },
     { label: "Roles", icon: Shield, path: "/dashboard/roles" },
   ],
 };
