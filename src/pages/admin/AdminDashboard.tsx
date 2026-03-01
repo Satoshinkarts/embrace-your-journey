@@ -6,10 +6,15 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import ActiveRidesMap from "@/components/ActiveRidesMap";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, MapPin, Shield, BarChart3, Trash2, TrendingUp, Trophy } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Users, MapPin, Shield, BarChart3, Trash2, TrendingUp, Trophy, Plus, Ban, CheckCircle, UserPlus, ShieldAlert, ShieldCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { OperatorRankingChannel } from "@/components/RankingChannel";
+
+const ALL_ROLES = ["customer", "rider", "dispatcher", "operator", "admin"] as const;
 
 export default function AdminDashboard() {
   const [rankingOpen, setRankingOpen] = useState(false);
@@ -44,6 +49,8 @@ export function AdminRoles() {
   return <DashboardLayout><RolesView /></DashboardLayout>;
 }
 
+// ─── Overview ────────────────────────────────────────────────────────
+
 function OverviewView() {
   const { data: profiles } = useQuery({ queryKey: ["admin-profiles"], queryFn: async () => { const { data, error } = await supabase.from("profiles").select("*"); if (error) throw error; return data; } });
   const { data: rides } = useQuery({ queryKey: ["admin-rides"], queryFn: async () => { const { data, error } = await supabase.from("rides").select("*"); if (error) throw error; return data; } });
@@ -54,6 +61,7 @@ function OverviewView() {
   const completedRides = rides?.filter(r => r.status === "completed").length || 0;
   const activeRides = rides?.filter(r => ["requested", "accepted", "en_route", "picked_up"].includes(r.status)).length || 0;
   const revenue = rides?.filter(r => r.status === "completed").reduce((s, r) => s + Number(r.fare || 0), 0) || 0;
+  const bannedUsers = profiles?.filter(p => p.is_banned).length || 0;
 
   const stats = [
     { label: "Users", value: totalUsers, icon: Users, color: "text-info" },
@@ -61,7 +69,7 @@ function OverviewView() {
     { label: "Active", value: activeRides, icon: TrendingUp, color: "text-warning" },
     { label: "Completed", value: completedRides, icon: BarChart3, color: "text-primary" },
     { label: "Revenue", value: `₱${revenue.toFixed(0)}`, icon: TrendingUp, color: "text-foreground" },
-    { label: "Vehicles", value: vehicles?.length || 0, icon: MapPin, color: "text-foreground" },
+    { label: "Banned", value: bannedUsers, icon: Ban, color: "text-destructive" },
   ];
 
   return (
@@ -82,42 +90,307 @@ function OverviewView() {
   );
 }
 
-function UsersView() {
-  const { data: profiles, isLoading } = useQuery({ queryKey: ["admin-all-profiles"], queryFn: async () => { const { data, error } = await supabase.from("profiles").select("*").order("created_at", { ascending: false }); if (error) throw error; return data; } });
-  const { data: allRoles } = useQuery({ queryKey: ["admin-all-roles"], queryFn: async () => { const { data, error } = await supabase.from("user_roles").select("*"); if (error) throw error; return data; } });
+// ─── Users View (with create, ban, role management) ──────────────────
 
-  const getRoles = (userId: string) => allRoles?.filter(r => r.user_id === userId).map(r => r.role as string) || [];
+function UsersView() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [createOpen, setCreateOpen] = useState(false);
+  const [banDialogUser, setBanDialogUser] = useState<any>(null);
+  const [banReason, setBanReason] = useState("");
+  const [roleUser, setRoleUser] = useState<any>(null);
+  const [newRole, setNewRole] = useState("");
+
+  const { data: profiles, isLoading } = useQuery({
+    queryKey: ["admin-all-profiles"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+  const { data: allRoles } = useQuery({
+    queryKey: ["admin-all-roles"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("user_roles").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const getRoles = (userId: string) => allRoles?.filter(r => r.user_id === userId) || [];
+
+  // Ban / Unban
+  const banMutation = useMutation({
+    mutationFn: async ({ userId, ban, reason }: { userId: string; ban: boolean; reason?: string }) => {
+      const { error } = await supabase.from("profiles").update({
+        is_banned: ban,
+        ban_reason: ban ? reason || null : null,
+        banned_at: ban ? new Date().toISOString() : null,
+      }).eq("user_id", userId);
+      if (error) throw error;
+    },
+    onSuccess: (_, vars) => {
+      toast({ title: vars.ban ? "User banned" : "User unbanned" });
+      queryClient.invalidateQueries({ queryKey: ["admin-all-profiles"] });
+      setBanDialogUser(null);
+      setBanReason("");
+    },
+    onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+  });
+
+  // Add role
+  const addRoleMutation = useMutation({
+    mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
+      const { error } = await supabase.from("user_roles").insert({ user_id: userId, role: role as any });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Role added" });
+      queryClient.invalidateQueries({ queryKey: ["admin-all-roles"] });
+      setRoleUser(null);
+      setNewRole("");
+    },
+    onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+  });
+
+  // Remove role
+  const removeRoleMutation = useMutation({
+    mutationFn: async (roleId: string) => {
+      const { error } = await supabase.from("user_roles").delete().eq("id", roleId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Role removed" });
+      queryClient.invalidateQueries({ queryKey: ["admin-all-roles"] });
+    },
+  });
 
   return (
     <div>
-      <h2 className="mb-4 text-lg font-bold text-foreground">All Users</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-bold text-foreground">User Management</h2>
+        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm" className="rounded-xl gap-1.5">
+              <UserPlus className="h-3.5 w-3.5" /> Create User
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="rounded-2xl">
+            <DialogHeader>
+              <DialogTitle>Create New Account</DialogTitle>
+            </DialogHeader>
+            <CreateUserForm onSuccess={() => {
+              setCreateOpen(false);
+              queryClient.invalidateQueries({ queryKey: ["admin-all-profiles"] });
+              queryClient.invalidateQueries({ queryKey: ["admin-all-roles"] });
+            }} />
+          </DialogContent>
+        </Dialog>
+      </div>
+
       {isLoading ? <LoadingSkeleton /> : (
         <div className="space-y-2.5">
-          {profiles?.map((p, i) => (
-            <motion.div key={p.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }} className="glass-card p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-sm font-bold text-foreground">
-                    {(p.full_name || "?")[0].toUpperCase()}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{p.full_name || "Unnamed"}</p>
-                    <p className="text-[10px] text-muted-foreground">{p.phone || "No phone"}</p>
+          {profiles?.map((p, i) => {
+            const userRoles = getRoles(p.user_id);
+            return (
+              <motion.div key={p.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }} className="glass-card p-4">
+                {/* Header row */}
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-3">
+                    <div className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold ${p.is_banned ? "bg-destructive/20 text-destructive" : "bg-secondary text-foreground"}`}>
+                      {(p.full_name || "?")[0].toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-foreground">{p.full_name || "Unnamed"}</p>
+                        {p.is_banned && (
+                          <Badge className="border border-destructive/30 bg-destructive/10 text-destructive text-[10px]">Banned</Badge>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">{p.phone || "No phone"}</p>
+                    </div>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-1 justify-end">
-                  {getRoles(p.user_id).map(role => (
-                    <Badge key={role} className="border border-info/20 bg-info/10 text-info text-[10px] capitalize">{role}</Badge>
+
+                {/* Roles */}
+                <div className="flex flex-wrap items-center gap-1 mb-3">
+                  {userRoles.map(r => (
+                    <Badge key={r.id} className="border border-info/20 bg-info/10 text-info text-[10px] capitalize gap-1 pr-1">
+                      {r.role as string}
+                      <button
+                        onClick={() => removeRoleMutation.mutate(r.id)}
+                        className="ml-0.5 rounded-full hover:bg-info/20 p-0.5 transition-colors"
+                        title="Remove role"
+                      >
+                        <Trash2 className="h-2.5 w-2.5" />
+                      </button>
+                    </Badge>
                   ))}
+                  <button
+                    onClick={() => { setRoleUser(p); setNewRole(""); }}
+                    className="flex items-center gap-0.5 rounded-full border border-dashed border-border px-2 py-0.5 text-[10px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+                  >
+                    <Plus className="h-2.5 w-2.5" /> Add role
+                  </button>
                 </div>
-              </div>
-            </motion.div>
-          ))}
+
+                {/* Actions */}
+                <div className="flex gap-2">
+                  {p.is_banned ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 rounded-lg text-xs gap-1 border-primary/30 text-primary hover:bg-primary/10"
+                      onClick={() => banMutation.mutate({ userId: p.user_id, ban: false })}
+                      disabled={banMutation.isPending}
+                    >
+                      <CheckCircle className="h-3 w-3" /> Unban
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 rounded-lg text-xs gap-1 border-destructive/30 text-destructive hover:bg-destructive/10"
+                      onClick={() => setBanDialogUser(p)}
+                    >
+                      <Ban className="h-3 w-3" /> Ban
+                    </Button>
+                  )}
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
       )}
+
+      {/* Ban confirmation dialog */}
+      <Dialog open={!!banDialogUser} onOpenChange={(open) => { if (!open) { setBanDialogUser(null); setBanReason(""); } }}>
+        <DialogContent className="rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldAlert className="h-5 w-5 text-destructive" />
+              Ban {banDialogUser?.full_name || "User"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">This will prevent the user from accessing the platform.</p>
+            <Textarea
+              placeholder="Reason for ban (optional)"
+              value={banReason}
+              onChange={(e) => setBanReason(e.target.value)}
+              className="rounded-xl bg-secondary border-border"
+              maxLength={500}
+            />
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1 rounded-xl"
+                onClick={() => { setBanDialogUser(null); setBanReason(""); }}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1 rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={() => banMutation.mutate({ userId: banDialogUser.user_id, ban: true, reason: banReason })}
+                disabled={banMutation.isPending}
+              >
+                Confirm Ban
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add role dialog */}
+      <Dialog open={!!roleUser} onOpenChange={(open) => { if (!open) setRoleUser(null); }}>
+        <DialogContent className="rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-info" />
+              Add Role — {roleUser?.full_name || "User"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Select value={newRole} onValueChange={setNewRole}>
+              <SelectTrigger className="h-11 rounded-xl bg-secondary border-border">
+                <SelectValue placeholder="Select role" />
+              </SelectTrigger>
+              <SelectContent>
+                {ALL_ROLES.map(r => (
+                  <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              className="w-full h-11 rounded-xl"
+              onClick={() => addRoleMutation.mutate({ userId: roleUser.user_id, role: newRole })}
+              disabled={!newRole || addRoleMutation.isPending}
+            >
+              Add Role
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
+// ─── Create User Form ────────────────────────────────────────────────
+
+function CreateUserForm({ onSuccess }: { onSuccess: () => void }) {
+  const { toast } = useToast();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [role, setRole] = useState("customer");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!email.trim() || !password.trim()) return;
+    if (password.length < 6) {
+      toast({ title: "Password must be at least 6 characters", variant: "destructive" });
+      return;
+    }
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-create-user", {
+        body: { email: email.trim(), password, full_name: fullName.trim() || undefined, role },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast({ title: "Account created", description: `${email} added as ${role}` });
+      onSuccess();
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <Input placeholder="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} className="rounded-xl bg-secondary border-border" />
+      <Input placeholder="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="rounded-xl bg-secondary border-border" />
+      <Input placeholder="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="rounded-xl bg-secondary border-border" />
+      <Select value={role} onValueChange={setRole}>
+        <SelectTrigger className="h-11 rounded-xl bg-secondary border-border">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {ALL_ROLES.map(r => (
+            <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Button className="w-full h-11 rounded-xl" onClick={handleSubmit} disabled={loading || !email.trim() || !password.trim()}>
+        {loading ? "Creating..." : "Create Account"}
+      </Button>
+    </div>
+  );
+}
+
+// ─── Rides View ──────────────────────────────────────────────────────
 
 function AdminRidesView() {
   const { data: rides, isLoading } = useQuery({
@@ -159,6 +432,8 @@ function AdminRidesView() {
     </div>
   );
 }
+
+// ─── Roles View ──────────────────────────────────────────────────────
 
 function RolesView() {
   const { toast } = useToast();
@@ -204,7 +479,7 @@ function RolesView() {
               <SelectValue placeholder="Select role" />
             </SelectTrigger>
             <SelectContent>
-              {["customer", "rider", "dispatcher", "operator", "admin"].map(r => (
+              {ALL_ROLES.map(r => (
                 <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>
               ))}
             </SelectContent>
@@ -241,6 +516,8 @@ function RolesView() {
     </div>
   );
 }
+
+// ─── Shared ──────────────────────────────────────────────────────────
 
 function LoadingSkeleton() {
   return (
