@@ -60,12 +60,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let mounted = true;
 
     // Restore session first — this is fast (reads from storage)
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!mounted) return;
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchRoles(session.user.id);
+        await fetchRoles(session.user.id);
       }
       setLoading(false);
     });
