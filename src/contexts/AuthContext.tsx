@@ -31,14 +31,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isBanned, setIsBanned] = useState(false);
 
-  const fetchRoles = async (userId: string) => {
+  const fetchRoles = async (userId: string): Promise<AppRole[]> => {
     const { data } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", userId);
-    if (data) {
-      setRoles(data.map((r) => r.role as AppRole));
-    }
+    const parsed = data ? data.map((r) => r.role as AppRole) : [];
+    setRoles(parsed);
+    return parsed;
   };
 
   const checkBanStatus = async (userId: string) => {
