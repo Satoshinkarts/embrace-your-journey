@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Navigation, Clock, CheckCircle, XCircle, Loader2, X, Star, Wallet } from "lucide-react";
 import WalletCard from "@/components/WalletCard";
+import RideRatingDialog from "@/components/RideRatingDialog";
 import { useToast } from "@/hooks/use-toast";
 import { calculateFare } from "@/lib/fareCalculation";
 import { useActiveZones, type Zone } from "@/hooks/useZones";
@@ -181,6 +182,8 @@ function BookRideSection() {
     })();
   }, [mapboxToken, pickupCoords]);
 
+  const [ratingRide, setRatingRide] = useState<{ id: string; rider_id: string } | null>(null);
+
   const { data: activeRide, isLoading: loadingActive } = useQuery({
     queryKey: ["active-ride", user?.id],
     queryFn: async () => {
@@ -198,6 +201,40 @@ function BookRideSection() {
     enabled: !!user,
     refetchInterval: 3000,
   });
+
+  // Check for recently completed ride that needs rating
+  const { data: completedUnrated } = useQuery({
+    queryKey: ["completed-unrated", user?.id],
+    queryFn: async () => {
+      // Get last completed ride
+      const { data: ride } = await supabase
+        .from("rides")
+        .select("id, rider_id, completed_at")
+        .eq("customer_id", user!.id)
+        .eq("status", "completed" as any)
+        .order("completed_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!ride?.rider_id) return null;
+      // Check if already rated
+      const { data: existing } = await supabase
+        .from("ratings")
+        .select("id")
+        .eq("ride_id", ride.id)
+        .eq("rater_id", user!.id)
+        .maybeSingle();
+      if (existing) return null;
+      return ride;
+    },
+    enabled: !!user && !activeRide,
+  });
+
+  // Auto-open rating dialog for completed unrated rides
+  useEffect(() => {
+    if (completedUnrated && !ratingRide) {
+      setRatingRide({ id: completedUnrated.id, rider_id: completedUnrated.rider_id! });
+    }
+  }, [completedUnrated]);
 
   const bookMutation = useMutation({
     mutationFn: async () => {
@@ -381,15 +418,46 @@ function BookRideSection() {
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Post-ride rating dialog */}
+      {ratingRide && (
+        <RideRatingDialog
+          open={!!ratingRide}
+          onOpenChange={(open) => { if (!open) setRatingRide(null); }}
+          rideId={ratingRide.id}
+          riderId={ratingRide.rider_id}
+        />
+      )}
     </div>
   );
 }
 
 function ActiveRideCard({ ride, onCancel, cancelling }: { ride: any; onCancel: () => void; cancelling: boolean }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const config = statusConfig[ride.status as RideStatus];
   const StatusIcon = config.icon;
   const steps: RideStatus[] = ["requested", "accepted", "en_route", "picked_up"];
   const currentIdx = steps.indexOf(ride.status as RideStatus);
+
+  // Customer confirms trip completion
+  const confirmMutation = useMutation({
+    mutationFn: async () => {
+      // Insert a booking event confirming the customer acknowledged completion
+      const { error } = await supabase.from("booking_events").insert({
+        ride_id: ride.id,
+        event_type: "customer_confirmed",
+        actor_id: ride.customer_id,
+        actor_role: "customer",
+        metadata: { confirmed_at: new Date().toISOString() },
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Trip confirmed!", description: "Thank you for riding with us." });
+      queryClient.invalidateQueries({ queryKey: ["active-ride"] });
+    },
+  });
 
   return (
     <motion.div
@@ -444,6 +512,18 @@ function ActiveRideCard({ ride, onCancel, cancelling }: { ride: any; onCancel: (
             <div key={i} className={`h-1 flex-1 rounded-full transition-colors ${i <= currentIdx ? "bg-primary" : "bg-secondary"}`} />
           ))}
         </div>
+
+        {/* Customer confirmation when rider marks picked_up */}
+        {ride.status === "picked_up" && (
+          <Button
+            className="mt-4 h-12 w-full rounded-xl text-sm font-semibold"
+            onClick={() => confirmMutation.mutate()}
+            disabled={confirmMutation.isPending}
+          >
+            {confirmMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
+            Confirm Trip Ended
+          </Button>
+        )}
 
         {ride.status === "requested" && (
           <Button
