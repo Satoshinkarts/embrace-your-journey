@@ -104,7 +104,9 @@ const AppRoutes = () => (
     <Route path="/dashboard/admin-map" element={<RoleGuard allowedRoles={["admin"]}><AdminMap /></RoleGuard>} />
     <Route path="/dashboard/roles" element={<RoleGuard allowedRoles={["admin"]}><AdminRoles /></RoleGuard>} />
     <Route path="/dashboard/zones" element={<RoleGuard allowedRoles={["admin"]}><AdminZones /></RoleGuard>} />
-    <Route path="/dashboard/wallets" element={<RoleGuard allowedRoles={["admin"]}><AdminWallets /></RoleGuard>} />
+    <Route path="/dashboard/networks" element={<RoleGuard allowedRoles={["admin"]}><AdminNetworks /></RoleGuard>} />
+    <Route path="/dashboard/kpi" element={<RoleGuard allowedRoles={["admin", "operator"]}><AdminKPI /></RoleGuard>} />
+    <Route path="/dashboard/strikes" element={<RoleGuard allowedRoles={["admin", "operator"]}><AdminStrikes /></RoleGuard>} />
 
     <Route path="*" element={<NotFound />} />
   </Routes>
