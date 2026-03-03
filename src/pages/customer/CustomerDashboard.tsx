@@ -418,6 +418,16 @@ function BookRideSection() {
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Post-ride rating dialog */}
+      {ratingRide && (
+        <RideRatingDialog
+          open={!!ratingRide}
+          onOpenChange={(open) => { if (!open) setRatingRide(null); }}
+          rideId={ratingRide.id}
+          riderId={ratingRide.rider_id}
+        />
+      )}
     </div>
   );
 }
