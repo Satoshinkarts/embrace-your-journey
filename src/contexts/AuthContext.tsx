@@ -31,14 +31,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isBanned, setIsBanned] = useState(false);
 
-  const fetchRoles = async (userId: string) => {
+  const fetchRoles = async (userId: string): Promise<AppRole[]> => {
     const { data } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", userId);
-    if (data) {
-      setRoles(data.map((r) => r.role as AppRole));
-    }
+    const parsed = data ? data.map((r) => r.role as AppRole) : [];
+    setRoles(parsed);
+    return parsed;
   };
 
   const checkBanStatus = async (userId: string) => {
@@ -60,12 +60,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let mounted = true;
 
     // Restore session first — this is fast (reads from storage)
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!mounted) return;
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchRoles(session.user.id);
+        await fetchRoles(session.user.id);
       }
       setLoading(false);
     });
