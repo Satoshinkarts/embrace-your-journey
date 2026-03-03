@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { motion, AnimatePresence } from "framer-motion";
-import DashboardLayout from "@/components/layout/DashboardLayout";
+import { motion } from "framer-motion";
+import SidebarLayout from "@/components/layout/SidebarLayout";
 import ActiveRidesMap from "@/components/ActiveRidesMap";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ export default function OperatorDashboard() {
   const [rankingOpen, setRankingOpen] = useState(false);
   const unreadCount = useUnreadDMCount();
   return (
-    <DashboardLayout>
+    <SidebarLayout>
       <div className="flex items-center justify-between mb-4">
         <div />
         <Button variant="outline" size="sm" className="rounded-xl gap-1.5 relative" onClick={() => setRankingOpen(true)}>
@@ -31,20 +31,20 @@ export default function OperatorDashboard() {
       </div>
       <FleetView />
       <OperatorRankingChannel open={rankingOpen} onOpenChange={setRankingOpen} />
-    </DashboardLayout>
+    </SidebarLayout>
   );
 }
 
 export function OperatorMap() {
-  return <DashboardLayout fullScreen><OperatorLiveMap /></DashboardLayout>;
+  return <SidebarLayout fullScreen><OperatorLiveMap /></SidebarLayout>;
 }
 
 export function OperatorRiders() {
-  return <DashboardLayout><RidersView /></DashboardLayout>;
+  return <SidebarLayout><RidersView /></SidebarLayout>;
 }
 
 export function OperatorReports() {
-  return <DashboardLayout><ReportsView /></DashboardLayout>;
+  return <SidebarLayout><ReportsView /></SidebarLayout>;
 }
 
 function FleetView() {
@@ -73,16 +73,16 @@ function FleetView() {
 
   return (
     <div>
-      <h2 className="mb-4 text-lg font-bold text-foreground">Fleet Management</h2>
+      <h2 className="mb-4 text-xl font-bold text-foreground">Fleet Management</h2>
       {isLoading ? <LoadingSkeleton /> : !vehicles?.length ? (
         <div className="glass-card p-8 text-center">
           <Car className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">No vehicles registered</p>
         </div>
       ) : (
-        <div className="space-y-2.5">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {vehicles.map((v, i) => (
-            <motion.div key={v.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="glass-card p-4">
+            <motion.div key={v.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }} className="glass-card p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-foreground">{v.make} {v.model} — {v.plate_number}</p>
@@ -96,8 +96,7 @@ function FleetView() {
                     {v.is_verified ? "Verified" : "Pending"}
                   </Badge>
                   <Button size="sm" variant="ghost" className="h-8 w-8 p-0 rounded-xl"
-                    onClick={() => verifyMutation.mutate({ id: v.id, verified: !v.is_verified })}
-                  >
+                    onClick={() => verifyMutation.mutate({ id: v.id, verified: !v.is_verified })}>
                     {v.is_verified ? <XCircle className="h-4 w-4 text-destructive" /> : <CheckCircle className="h-4 w-4 text-primary" />}
                   </Button>
                 </div>
@@ -117,7 +116,7 @@ function RidersView() {
       const { data: roles, error: roleErr } = await supabase.from("user_roles").select("user_id").eq("role", "rider" as any);
       if (roleErr) throw roleErr;
       if (!roles?.length) return [];
-      const { data, error } = await supabase.from("profiles").select("*").in("user_id", roles.map((r) => r.user_id));
+      const { data, error } = await supabase.from("profiles").select("*").in("user_id", roles.map(r => r.user_id));
       if (error) throw error;
       return data;
     },
@@ -125,16 +124,16 @@ function RidersView() {
 
   return (
     <div>
-      <h2 className="mb-4 text-lg font-bold text-foreground">Registered Riders</h2>
+      <h2 className="mb-4 text-xl font-bold text-foreground">Registered Riders</h2>
       {isLoading ? <LoadingSkeleton /> : !riderProfiles?.length ? (
         <div className="glass-card p-8 text-center">
           <Users className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">No riders registered</p>
         </div>
       ) : (
-        <div className="space-y-2.5">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {riderProfiles.map((r, i) => (
-            <motion.div key={r.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="glass-card p-4">
+            <motion.div key={r.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }} className="glass-card p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-sm font-bold text-foreground">
@@ -167,12 +166,12 @@ function ReportsView() {
 
   return (
     <div>
-      <h2 className="mb-4 text-lg font-bold text-foreground">Reports</h2>
-      <div className="grid grid-cols-3 gap-3">
+      <h2 className="mb-4 text-xl font-bold text-foreground">Reports</h2>
+      <div className="grid grid-cols-3 gap-4">
         {stats.map((s, i) => (
-          <motion.div key={s.label} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.08 }} className="glass-card p-4 text-center">
+          <motion.div key={s.label} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.06 }} className="glass-card p-5 text-center">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{s.label}</p>
-            <p className="mt-1 text-xl font-bold text-foreground">{s.value}</p>
+            <p className="mt-1 text-2xl font-bold text-foreground">{s.value}</p>
           </motion.div>
         ))}
       </div>
@@ -182,10 +181,8 @@ function ReportsView() {
 
 function LoadingSkeleton() {
   return (
-    <div className="space-y-2.5">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="glass-card h-16 animate-pulse bg-secondary/50" />
-      ))}
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {[1, 2, 3].map(i => <div key={i} className="glass-card h-20 animate-pulse bg-secondary/50" />)}
     </div>
   );
 }
