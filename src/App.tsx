@@ -12,6 +12,9 @@ import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import AdminZones from "./pages/admin/AdminZones";
+import AdminNetworks from "./pages/admin/AdminNetworks";
+import AdminKPI from "./pages/admin/AdminKPI";
+import AdminStrikes from "./pages/admin/AdminStrikes";
 
 // Customer
 import CustomerDashboard, { CustomerRides, CustomerRatings, CustomerWallet } from "./pages/customer/CustomerDashboard";
