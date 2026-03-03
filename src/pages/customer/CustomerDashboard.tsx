@@ -182,6 +182,8 @@ function BookRideSection() {
     })();
   }, [mapboxToken, pickupCoords]);
 
+  const [ratingRide, setRatingRide] = useState<{ id: string; rider_id: string } | null>(null);
+
   const { data: activeRide, isLoading: loadingActive } = useQuery({
     queryKey: ["active-ride", user?.id],
     queryFn: async () => {
@@ -199,6 +201,40 @@ function BookRideSection() {
     enabled: !!user,
     refetchInterval: 3000,
   });
+
+  // Check for recently completed ride that needs rating
+  const { data: completedUnrated } = useQuery({
+    queryKey: ["completed-unrated", user?.id],
+    queryFn: async () => {
+      // Get last completed ride
+      const { data: ride } = await supabase
+        .from("rides")
+        .select("id, rider_id, completed_at")
+        .eq("customer_id", user!.id)
+        .eq("status", "completed" as any)
+        .order("completed_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!ride?.rider_id) return null;
+      // Check if already rated
+      const { data: existing } = await supabase
+        .from("ratings")
+        .select("id")
+        .eq("ride_id", ride.id)
+        .eq("rater_id", user!.id)
+        .maybeSingle();
+      if (existing) return null;
+      return ride;
+    },
+    enabled: !!user && !activeRide,
+  });
+
+  // Auto-open rating dialog for completed unrated rides
+  useEffect(() => {
+    if (completedUnrated && !ratingRide) {
+      setRatingRide({ id: completedUnrated.id, rider_id: completedUnrated.rider_id! });
+    }
+  }, [completedUnrated]);
 
   const bookMutation = useMutation({
     mutationFn: async () => {
