@@ -12,6 +12,9 @@ import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import AdminZones from "./pages/admin/AdminZones";
+import AdminNetworks from "./pages/admin/AdminNetworks";
+import AdminKPI from "./pages/admin/AdminKPI";
+import AdminStrikes from "./pages/admin/AdminStrikes";
 
 // Customer
 import CustomerDashboard, { CustomerRides, CustomerRatings, CustomerWallet } from "./pages/customer/CustomerDashboard";
@@ -101,6 +104,9 @@ const AppRoutes = () => (
     <Route path="/dashboard/admin-map" element={<RoleGuard allowedRoles={["admin"]}><AdminMap /></RoleGuard>} />
     <Route path="/dashboard/roles" element={<RoleGuard allowedRoles={["admin"]}><AdminRoles /></RoleGuard>} />
     <Route path="/dashboard/zones" element={<RoleGuard allowedRoles={["admin"]}><AdminZones /></RoleGuard>} />
+    <Route path="/dashboard/networks" element={<RoleGuard allowedRoles={["admin"]}><AdminNetworks /></RoleGuard>} />
+    <Route path="/dashboard/kpi" element={<RoleGuard allowedRoles={["admin", "operator"]}><AdminKPI /></RoleGuard>} />
+    <Route path="/dashboard/strikes" element={<RoleGuard allowedRoles={["admin", "operator"]}><AdminStrikes /></RoleGuard>} />
     <Route path="/dashboard/wallets" element={<RoleGuard allowedRoles={["admin"]}><AdminWallets /></RoleGuard>} />
 
     <Route path="*" element={<NotFound />} />

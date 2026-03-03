@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      booking_events: {
+        Row: {
+          actor_id: string
+          actor_role: string
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          ride_id: string
+        }
+        Insert: {
+          actor_id: string
+          actor_role?: string
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          ride_id: string
+        }
+        Update: {
+          actor_id?: string
+          actor_role?: string
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          ride_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_events_ride_id_fkey"
+            columns: ["ride_id"]
+            isOneToOne: false
+            referencedRelation: "rides"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       channel_audit_logs: {
         Row: {
           action: string
@@ -234,6 +272,128 @@ export type Database = {
           },
         ]
       }
+      network_members: {
+        Row: {
+          approved_at: string | null
+          id: string
+          joined_at: string
+          network_id: string
+          role: string
+          status: string
+          suspended_at: string | null
+          user_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          id?: string
+          joined_at?: string
+          network_id: string
+          role?: string
+          status?: string
+          suspended_at?: string | null
+          user_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          id?: string
+          joined_at?: string
+          network_id?: string
+          role?: string
+          status?: string
+          suspended_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "network_members_network_id_fkey"
+            columns: ["network_id"]
+            isOneToOne: false
+            referencedRelation: "networks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      network_zones: {
+        Row: {
+          assigned_at: string
+          id: string
+          network_id: string
+          zone_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          id?: string
+          network_id: string
+          zone_id: string
+        }
+        Update: {
+          assigned_at?: string
+          id?: string
+          network_id?: string
+          zone_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "network_zones_network_id_fkey"
+            columns: ["network_id"]
+            isOneToOne: false
+            referencedRelation: "networks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "network_zones_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      networks: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          license_doc_url: string | null
+          logo_url: string | null
+          max_seats: number
+          name: string
+          owner_id: string
+          status: string
+          subscription_fee: number
+          updated_at: string
+          verified_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          license_doc_url?: string | null
+          logo_url?: string | null
+          max_seats?: number
+          name: string
+          owner_id: string
+          status?: string
+          subscription_fee?: number
+          updated_at?: string
+          verified_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          license_doc_url?: string | null
+          logo_url?: string | null
+          max_seats?: number
+          name?: string
+          owner_id?: string
+          status?: string
+          subscription_fee?: number
+          updated_at?: string
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           body: string | null
@@ -432,6 +592,7 @@ export type Database = {
           dropoff_lng: number | null
           fare: number | null
           id: string
+          network_id: string | null
           pickup_address: string
           pickup_lat: number | null
           pickup_lng: number | null
@@ -454,6 +615,7 @@ export type Database = {
           dropoff_lng?: number | null
           fare?: number | null
           id?: string
+          network_id?: string | null
           pickup_address: string
           pickup_lat?: number | null
           pickup_lng?: number | null
@@ -476,6 +638,7 @@ export type Database = {
           dropoff_lng?: number | null
           fare?: number | null
           id?: string
+          network_id?: string | null
           pickup_address?: string
           pickup_lat?: number | null
           pickup_lng?: number | null
@@ -486,6 +649,13 @@ export type Database = {
           zone_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "rides_network_id_fkey"
+            columns: ["network_id"]
+            isOneToOne: false
+            referencedRelation: "networks"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "rides_zone_id_fkey"
             columns: ["zone_id"]
@@ -524,6 +694,44 @@ export type Database = {
           title?: string
         }
         Relationships: []
+      }
+      strikes: {
+        Row: {
+          created_at: string
+          id: string
+          issued_by: string
+          network_id: string | null
+          reason: string
+          severity: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          issued_by: string
+          network_id?: string | null
+          reason: string
+          severity?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          issued_by?: string
+          network_id?: string | null
+          reason?: string
+          severity?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "strikes_network_id_fkey"
+            columns: ["network_id"]
+            isOneToOne: false
+            referencedRelation: "networks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
