@@ -547,13 +547,51 @@ function BookRideSection() {
   );
 }
 
-function ActiveRideCard({ ride, onCancel, cancelling }: { ride: any; onCancel: () => void; cancelling: boolean }) {
+function ActiveRideCard({ ride, onCancel, cancelling, riderLocation, mapboxToken }: {
+  ride: any;
+  onCancel: () => void;
+  cancelling: boolean;
+  riderLocation: { lat: number; lng: number; heading: number | null; speed: number | null } | null;
+  mapboxToken: string | null;
+}) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const config = statusConfig[ride.status as RideStatus];
   const StatusIcon = config.icon;
   const steps: RideStatus[] = ["requested", "accepted", "en_route", "picked_up"];
   const currentIdx = steps.indexOf(ride.status as RideStatus);
+
+  // ETA & distance from rider to destination (pickup if not picked up, dropoff if picked up)
+  const [riderEta, setRiderEta] = useState<{ distanceKm: number; durationMin: number } | null>(null);
+
+  useEffect(() => {
+    if (!riderLocation || !mapboxToken) { setRiderEta(null); return; }
+
+    const isPickedUp = ride.status === "picked_up";
+    const destLat = isPickedUp ? ride.dropoff_lat : ride.pickup_lat;
+    const destLng = isPickedUp ? ride.dropoff_lng : ride.pickup_lng;
+    if (!destLat || !destLng) { setRiderEta(null); return; }
+
+    let cancelled = false;
+    const fetchEta = async () => {
+      try {
+        const res = await fetch(
+          `https://api.mapbox.com/directions/v5/mapbox/driving/${riderLocation.lng},${riderLocation.lat};${destLng},${destLat}?overview=false&access_token=${mapboxToken}`
+        );
+        const data = await res.json();
+        if (!cancelled && data.routes?.[0]) {
+          setRiderEta({
+            distanceKm: data.routes[0].distance / 1000,
+            durationMin: Math.ceil(data.routes[0].duration / 60),
+          });
+        }
+      } catch { if (!cancelled) setRiderEta(null); }
+    };
+
+    fetchEta();
+    const interval = setInterval(fetchEta, 15000); // refresh every 15s
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [riderLocation?.lat, riderLocation?.lng, ride.status, mapboxToken]);
 
   // Customer confirms trip completion
   const confirmMutation = useMutation({
