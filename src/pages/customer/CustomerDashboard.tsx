@@ -402,7 +402,7 @@ function BookRideSection() {
   }
 
   return (
-    <div className="flex h-[calc(100dvh-56px)] flex-col overflow-hidden bg-background">
+    <div className="flex h-[calc(100dvh-56px-52px)] flex-col overflow-hidden bg-background">
       {/* Top: Pickup + Destination cards */}
       <div className="relative z-20 shrink-0 px-4 pt-3 pb-1 space-y-2 bg-background">
         <AnimatePresence mode="wait">
