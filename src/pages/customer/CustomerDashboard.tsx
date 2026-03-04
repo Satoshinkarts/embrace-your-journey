@@ -14,6 +14,7 @@ import RideRatingDialog from "@/components/RideRatingDialog";
 import { useToast } from "@/hooks/use-toast";
 import { calculateFare } from "@/lib/fareCalculation";
 import { useActiveZones, type Zone } from "@/hooks/useZones";
+import { useRiderLocationRealtime } from "@/hooks/useRiderLocationRealtime";
 
 type RideStatus = "requested" | "accepted" | "en_route" | "picked_up" | "completed" | "cancelled";
 
@@ -380,6 +381,9 @@ function BookRideSection() {
     return () => { cancelled = true; };
   }, [mapboxToken, pickupCoords, dropoffCoords, activeRide]);
 
+  // Real-time rider location during active ride
+  const riderLocation = useRiderLocationRealtime(activeRide?.rider_id);
+
   const markers = [
     ...(pickupCoords ? [{ id: "pickup", lng: pickupCoords[0], lat: pickupCoords[1], color: "#22c55e", label: "You are here" }] : []),
     ...(dropoffCoords ? [{ id: "dropoff", lng: dropoffCoords[0], lat: dropoffCoords[1], color: "#f59e0b", label: "Dropoff" }] : []),
@@ -388,6 +392,10 @@ function BookRideSection() {
       : []),
     ...(activeRide?.dropoff_lat && activeRide?.dropoff_lng
       ? [{ id: "active-dropoff", lng: activeRide.dropoff_lng, lat: activeRide.dropoff_lat, color: "#f59e0b", label: "Dropoff" }]
+      : []),
+    // Rider's live location marker
+    ...(activeRide && riderLocation
+      ? [{ id: "rider-live", lng: riderLocation.lng ?? 0, lat: riderLocation.lat ?? 0, color: "#3b82f6", label: "Your Rider 🏍️" }]
       : []),
   ];
 

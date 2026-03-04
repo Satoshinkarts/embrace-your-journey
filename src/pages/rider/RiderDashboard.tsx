@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Navigation, CheckCircle, Clock, DollarSign, Loader2, Star, Trophy, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { RiderRankingChannel } from "@/components/RankingChannel";
 import { useRiderLocationTracker, useRiderDirectives, useUpdateDirective, type DispatchDirective } from "@/hooks/useRiderTracking";
 import { useUnreadDMCount } from "@/hooks/useUnreadDMs";
@@ -148,6 +149,7 @@ function ActiveRideOrAvailable() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { data: mapboxToken } = useMapboxToken();
 
   const { data: activeRide, isLoading: loadingActive } = useQuery({
     queryKey: ["rider-active-ride", user?.id],
@@ -207,8 +209,64 @@ function ActiveRideOrAvailable() {
     },
   });
 
+  // Rider's own GPS position (live)
+  const [riderPos, setRiderPos] = useState<[number, number] | null>(null);
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    const wid = navigator.geolocation.watchPosition(
+      (pos) => setRiderPos([pos.coords.longitude, pos.coords.latitude]),
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 5000 }
+    );
+    return () => navigator.geolocation.clearWatch(wid);
+  }, []);
+
+  // Route: rider → pickup (accepted/en_route) or rider → dropoff (picked_up)
+  const [routeCoords, setRouteCoords] = useState<[number, number][] | undefined>(undefined);
+  const [routeInfo, setRouteInfo] = useState<{ distanceKm: number; durationMin: number } | null>(null);
+
+  useEffect(() => {
+    if (!mapboxToken || !riderPos || !activeRide) {
+      setRouteCoords(undefined);
+      setRouteInfo(null);
+      return;
+    }
+
+    let destCoords: [number, number] | null = null;
+    if (activeRide.status === "picked_up") {
+      if (activeRide.dropoff_lat && activeRide.dropoff_lng)
+        destCoords = [activeRide.dropoff_lng, activeRide.dropoff_lat];
+    } else {
+      if (activeRide.pickup_lat && activeRide.pickup_lng)
+        destCoords = [activeRide.pickup_lng, activeRide.pickup_lat];
+    }
+
+    if (!destCoords) { setRouteCoords(undefined); setRouteInfo(null); return; }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(
+          `https://api.mapbox.com/directions/v5/mapbox/driving/${riderPos[0]},${riderPos[1]};${destCoords![0]},${destCoords![1]}?geometries=geojson&overview=full&access_token=${mapboxToken}`
+        );
+        const data = await res.json();
+        if (!cancelled && data.routes?.[0]) {
+          setRouteCoords(data.routes[0].geometry.coordinates);
+          setRouteInfo({
+            distanceKm: data.routes[0].distance / 1000,
+            durationMin: Math.ceil(data.routes[0].duration / 60),
+          });
+        }
+      } catch {
+        if (!cancelled) { setRouteCoords(undefined); setRouteInfo(null); }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [mapboxToken, riderPos?.[0], riderPos?.[1], activeRide?.id, activeRide?.status]);
+
   // Build markers
   const markers = [
+    ...(riderPos ? [{ id: "rider-self", lng: riderPos[0], lat: riderPos[1], color: "#3b82f6", label: "You 🏍️" }] : []),
     ...(activeRide?.pickup_lat && activeRide?.pickup_lng
       ? [{ id: "pickup", lng: activeRide.pickup_lng, lat: activeRide.pickup_lat, color: "#22c55e", label: "Pickup" }] : []),
     ...(activeRide?.dropoff_lat && activeRide?.dropoff_lng
@@ -224,7 +282,7 @@ function ActiveRideOrAvailable() {
 
   return (
     <div className="relative flex h-[calc(100dvh-56px)] flex-col">
-      <MapboxMap className="absolute inset-0" markers={markers} />
+      <MapboxMap className="absolute inset-0" markers={markers} routeCoords={routeCoords} />
 
       {/* Status bar overlay */}
       <div className="map-gradient-top pointer-events-none absolute top-0 left-0 right-0 h-16 z-10" />
@@ -236,6 +294,11 @@ function ActiveRideOrAvailable() {
             <span className="text-xs font-medium text-foreground capitalize">
               {(activeRide.status as string).replace("_", " ")}
             </span>
+            {routeInfo && (
+              <span className="ml-auto text-xs text-muted-foreground">
+                {routeInfo.distanceKm.toFixed(1)} km · ~{routeInfo.durationMin} min
+              </span>
+            )}
           </div>
         </div>
       )}
@@ -244,7 +307,7 @@ function ActiveRideOrAvailable() {
       <div className="relative z-20 mt-auto">
         <div className="map-gradient-bottom pt-16 pb-20">
           {activeRide ? (
-            <ActiveTripCard ride={activeRide} advanceMutation={advanceMutation} />
+            <ActiveTripCard ride={activeRide} advanceMutation={advanceMutation} routeInfo={routeInfo} />
           ) : (
             <AvailableRidesSheet rides={availableRides || []} onAccept={(id) => acceptMutation.mutate(id)} accepting={acceptMutation.isPending} />
           )}
@@ -254,7 +317,7 @@ function ActiveRideOrAvailable() {
   );
 }
 
-function ActiveTripCard({ ride, advanceMutation }: { ride: any; advanceMutation: any }) {
+function ActiveTripCard({ ride, advanceMutation, routeInfo }: { ride: any; advanceMutation: any; routeInfo: { distanceKm: number; durationMin: number } | null }) {
   const nextStep = statusFlow.find((s) => s.from === ride.status);
 
   return (
@@ -277,6 +340,16 @@ function ActiveTripCard({ ride, advanceMutation }: { ride: any; advanceMutation:
             </div>
           </div>
         </div>
+
+        {/* Route info */}
+        {routeInfo && (
+          <div className="mb-3 flex items-center gap-3 rounded-xl bg-info/10 px-4 py-2.5">
+            <Navigation className="h-4 w-4 text-info" />
+            <span className="text-xs font-medium text-info">
+              {routeInfo.distanceKm.toFixed(1)} km · ~{routeInfo.durationMin} min {ride.status === "picked_up" ? "to dropoff" : "to pickup"}
+            </span>
+          </div>
+        )}
 
         {ride.fare && (
           <div className="mb-4 flex items-center justify-between rounded-xl bg-secondary/50 px-4 py-3">
