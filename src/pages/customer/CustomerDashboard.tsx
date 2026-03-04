@@ -652,6 +652,38 @@ function ActiveRideCard({ ride, onCancel, cancelling, riderLocation, mapboxToken
           </div>
         </div>
 
+        {/* Rider ETA & Distance */}
+        {riderEta && ride.status !== "requested" && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="mt-4 flex gap-2"
+          >
+            <div className="flex flex-1 items-center gap-2 rounded-xl bg-info/10 border border-info/20 px-3 py-2.5">
+              <Navigation className="h-4 w-4 text-info" />
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-info/70">Distance</p>
+                <p className="text-sm font-bold text-info">
+                  {riderEta.distanceKm < 1
+                    ? `${Math.round(riderEta.distanceKm * 1000)}m`
+                    : `${riderEta.distanceKm.toFixed(1)} km`}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-1 items-center gap-2 rounded-xl bg-primary/10 border border-primary/20 px-3 py-2.5">
+              <Clock className="h-4 w-4 text-primary" />
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-primary/70">
+                  {ride.status === "picked_up" ? "Arriving in" : "ETA"}
+                </p>
+                <p className="text-sm font-bold text-primary">
+                  {riderEta.durationMin <= 1 ? "< 1 min" : `${riderEta.durationMin} min`}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {ride.fare && (
           <div className="mt-4 flex items-center justify-between rounded-xl bg-secondary/50 px-4 py-3">
             <span className="text-xs text-muted-foreground">Estimated Fare</span>
