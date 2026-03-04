@@ -399,7 +399,8 @@ function BookRideSection() {
       : []),
   ];
 
-  const canBook = !!pickup.trim() && !!(dropoff.trim() || dropoffInput.trim());
+  const pickupReady = !!pickup.trim() && pickup !== "Locating address..." && !pickup.match(/^-?\d+\.\d{4},/);
+  const canBook = pickupReady && !!(dropoff.trim() || dropoffInput.trim());
 
   if (loadingActive) {
     return (
@@ -845,6 +846,25 @@ function RideHistory() {
     enabled: !!user,
   });
 
+  // Fetch ratings for all completed rides
+  const rideIds = rides?.filter(r => r.status === "completed").map(r => r.id) || [];
+  const { data: ratings } = useQuery({
+    queryKey: ["ride-ratings", rideIds],
+    queryFn: async () => {
+      if (!rideIds.length) return [];
+      const { data, error } = await supabase
+        .from("ratings")
+        .select("ride_id, rating, comment")
+        .eq("rater_id", user!.id)
+        .in("ride_id", rideIds);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user && rideIds.length > 0,
+  });
+
+  const ratingMap = new Map(ratings?.map(r => [r.ride_id, r]) || []);
+
   return (
     <div>
       <h2 className="mb-4 text-lg font-bold text-foreground">Ride History</h2>
@@ -857,6 +877,7 @@ function RideHistory() {
         <div className="space-y-2.5">
           {rides.map((ride, i) => {
             const config = statusConfig[ride.status as RideStatus];
+            const review = ratingMap.get(ride.id);
             return (
               <motion.div
                 key={ride.id}
@@ -878,6 +899,25 @@ function RideHistory() {
                     )}
                   </div>
                 </div>
+                {/* Review section */}
+                {ride.status === "completed" && review && (
+                  <div className="mt-3 flex items-center gap-2 rounded-lg bg-secondary/50 px-3 py-2">
+                    <div className="flex items-center gap-0.5">
+                      {Array.from({ length: review.rating }).map((_, j) => (
+                        <Star key={j} className="h-3 w-3 fill-warning text-warning" />
+                      ))}
+                      {Array.from({ length: 5 - review.rating }).map((_, j) => (
+                        <Star key={j} className="h-3 w-3 text-muted-foreground/30" />
+                      ))}
+                    </div>
+                    {review.comment && (
+                      <p className="truncate text-xs text-muted-foreground italic">"{review.comment}"</p>
+                    )}
+                  </div>
+                )}
+                {ride.status === "completed" && !review && (
+                  <p className="mt-2 text-[10px] text-muted-foreground/60 italic">No review left</p>
+                )}
               </motion.div>
             );
           })}
