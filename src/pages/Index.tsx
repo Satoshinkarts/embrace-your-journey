@@ -17,9 +17,9 @@ export default function Index() {
     <div className="relative flex min-h-[100dvh] flex-col items-center justify-center bg-background px-5 py-12 overflow-hidden">
       {/* Ambient glow */}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-1/2 top-1/3 -translate-x-1/2 h-[500px] w-[500px] rounded-full bg-primary/6 blur-[150px]" />
-        <div className="absolute right-0 top-0 h-72 w-72 rounded-full bg-info/4 blur-[120px]" />
-        <div className="absolute bottom-0 left-0 h-72 w-72 rounded-full bg-accent/4 blur-[120px]" />
+        <div className="absolute left-1/2 top-1/3 -translate-x-1/2 h-[500px] w-[500px] rounded-full bg-primary/8 blur-[150px]" />
+        <div className="absolute right-0 top-0 h-72 w-72 rounded-full bg-info/6 blur-[120px]" />
+        <div className="absolute bottom-0 left-0 h-72 w-72 rounded-full bg-accent/6 blur-[120px]" />
       </div>
 
       {/* Logo & branding */}
@@ -30,8 +30,8 @@ export default function Index() {
         className="relative z-10 mb-10 text-center"
       >
         <div className="relative mx-auto mb-5 h-24 w-24">
-          <div className="absolute -inset-6 rounded-full bg-white/8 blur-[50px]" />
-          <div className="absolute -inset-3 rounded-full bg-primary/10 blur-[30px]" />
+          <div className="absolute -inset-6 rounded-full bg-primary/10 blur-[50px]" />
+          <div className="absolute -inset-3 rounded-full bg-primary/15 blur-[30px]" />
           <img src={habalLogo} alt="Habal Logo" className="relative h-24 w-24 object-contain drop-shadow-2xl" />
         </div>
         <h1 className="text-2xl font-bold tracking-tight text-foreground">Habal</h1>
