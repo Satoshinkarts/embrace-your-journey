@@ -78,7 +78,7 @@ export default function Index() {
         </Button>
         <Button
           variant="outline"
-          className="h-12 w-full rounded-xl text-sm font-medium"
+          className="h-12 w-full text-sm font-medium"
           onClick={() => navigate("/auth")}
         >
           Sign In

@@ -86,7 +86,7 @@ export default function DashboardLayout({ children, fullScreen = false }: Dashbo
           </button>
           <button
             onClick={handleSignOut}
-            className="flex items-center gap-1.5 rounded-xl bg-secondary px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors active:bg-muted"
+            className="flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors active:bg-muted"
           >
             <LogOut className="h-3.5 w-3.5" />
             Exit

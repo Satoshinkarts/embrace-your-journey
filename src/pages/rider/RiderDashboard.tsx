@@ -119,7 +119,7 @@ function DirectiveBanner() {
             ) : (
               <Button
                 size="sm"
-                className="flex-1 rounded-xl text-xs h-8"
+                className="flex-1 text-xs h-8"
                 onClick={handleComplete}
                 disabled={updateDirective.isPending}
               >

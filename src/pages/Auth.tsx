@@ -153,7 +153,7 @@ export default function Auth() {
               </div>
             </div>
           )}
-          <Button type="submit" className="h-12 w-full rounded-xl text-sm font-semibold" disabled={loading}>
+          <Button type="submit" className="h-12 w-full text-sm font-semibold" disabled={loading}>
             {loading
               ? "Loading..."
               : mode === "forgot"
