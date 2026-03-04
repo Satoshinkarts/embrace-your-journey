@@ -146,8 +146,8 @@ function AssignView() {
         <div className="space-y-3">
           {unassignedRides.map((ride, i) => (
             <motion.div key={ride.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }} className="glass-card p-4">
-              <p className="text-sm font-medium text-foreground">{ride.pickup_address} → {ride.dropoff_address}</p>
-              <p className="text-[10px] text-muted-foreground mb-3">{new Date(ride.created_at).toLocaleString()}</p>
+              <p className="text-sm font-semibold text-foreground">{ride.dropoff_address}</p>
+              <p className="text-xs text-muted-foreground mt-0.5"><span className="text-muted-foreground/60">→</span> {ride.pickup_address}</p>
               {riders && riders.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {riders.map(rider => (

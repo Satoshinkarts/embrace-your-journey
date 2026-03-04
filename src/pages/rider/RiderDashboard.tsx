@@ -528,12 +528,19 @@ function EarningsView() {
           <p className="mb-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Recent</p>
           <div className="space-y-2">
             {completedTrips.slice(0, 10).map((t, i) => (
-              <motion.div key={t.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.04 }} className="glass-card flex items-center justify-between p-3">
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm text-foreground">{t.pickup_address} → {t.dropoff_address}</p>
-                  <p className="text-[10px] text-muted-foreground">{new Date(t.completed_at!).toLocaleString()}</p>
+              <motion.div key={t.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.04 }} className="glass-card p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-foreground">{t.dropoff_address}</p>
+                    <p className="truncate text-xs text-muted-foreground mt-0.5">
+                      <span className="text-muted-foreground/60">→</span> {t.pickup_address}
+                    </p>
+                    <p className="mt-1.5 text-[10px] text-muted-foreground">
+                      {new Date(t.completed_at!).toLocaleDateString()} · {new Date(t.completed_at!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                  <p className="shrink-0 ml-3 text-sm font-bold text-foreground">₱{Number(t.fare).toFixed(2)}</p>
                 </div>
-                <p className="shrink-0 ml-3 font-bold text-primary">₱{Number(t.fare).toFixed(2)}</p>
               </motion.div>
             ))}
           </div>
