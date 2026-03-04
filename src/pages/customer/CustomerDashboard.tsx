@@ -402,9 +402,9 @@ function BookRideSection() {
   }
 
   return (
-    <div className="flex h-[calc(100dvh-56px)] flex-col overflow-hidden">
+    <div className="theme-light flex h-[calc(100dvh-56px)] flex-col overflow-hidden bg-background">
       {/* Top: Pickup + Destination cards */}
-      <div className="relative z-20 shrink-0 px-4 pt-3 pb-1 space-y-2">
+      <div className="relative z-20 shrink-0 px-4 pt-3 pb-1 space-y-2 bg-background">
         <AnimatePresence mode="wait">
           {activeRide ? (
             <ActiveRideCard
@@ -422,7 +422,7 @@ function BookRideSection() {
               className="space-y-2"
             >
               {/* Pickup card */}
-              <div className={`rounded-2xl border p-4 ${pickupMode === "manual" ? "border-warning/40 bg-warning/5" : "border-border bg-card"}`}>
+              <div className={`rounded-2xl border p-4 shadow-sm ${pickupMode === "manual" ? "border-warning/40 bg-warning/5" : "border-border bg-card"}`}>
                 <div className="flex items-center gap-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-primary">
                     <div className="h-2.5 w-2.5 rounded-full bg-primary" />
@@ -440,7 +440,7 @@ function BookRideSection() {
                       <p className="truncate text-sm font-semibold text-foreground mt-0.5">{pickup}</p>
                     )}
                   </div>
-                  <button onClick={onTogglePickupMode} className="shrink-0 rounded-lg border border-border bg-secondary/80 px-2.5 py-1.5 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors">
+                  <button onClick={onTogglePickupMode} className="shrink-0 rounded-lg border border-border bg-secondary px-2.5 py-1.5 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors">
                     {pickupMode === "gps" ? "Pin" : "GPS"}
                   </button>
                 </div>
@@ -448,7 +448,7 @@ function BookRideSection() {
 
               {/* Destination card */}
               <div className="relative">
-                <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4">
+                <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-warning/20">
                     <MapPin className="h-4 w-4 text-warning" />
                   </div>
@@ -486,7 +486,7 @@ function BookRideSection() {
                           key={i}
                           onMouseDown={(e) => e.preventDefault()}
                           onClick={() => selectSuggestion(s)}
-                          className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-secondary/80 border-b border-border last:border-0"
+                          className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-secondary border-b border-border last:border-0"
                         >
                           <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
                           <span className="text-sm text-foreground line-clamp-2">{s.place_name}</span>
@@ -502,7 +502,7 @@ function BookRideSection() {
       </div>
 
       {/* Map in the middle */}
-      <div className="relative flex-1 min-h-0">
+      <div className="relative flex-1 min-h-[200px]">
         <MapboxMap
           className="h-full w-full"
           onMapClick={!activeRide ? handleMapClick : undefined}
@@ -513,7 +513,7 @@ function BookRideSection() {
         />
       </div>
 
-      {/* Bottom panel — details + order */}
+      {/* Bottom panel — always visible */}
       {!activeRide && (
         <BottomBookingPanel
           routeEstimate={routeEstimate}
