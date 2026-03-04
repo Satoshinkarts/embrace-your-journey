@@ -8,7 +8,7 @@ import MapboxMap from "@/components/MapboxMap";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Navigation, Clock, CheckCircle, XCircle, Loader2, X, Star, Wallet } from "lucide-react";
+import { MapPin, Navigation, Clock, CheckCircle, XCircle, Loader2, X, Star, Wallet, CalendarClock } from "lucide-react";
 import WalletCard from "@/components/WalletCard";
 import RideRatingDialog from "@/components/RideRatingDialog";
 import { useToast } from "@/hooks/use-toast";
@@ -367,56 +367,52 @@ function BookRideSection() {
   }
 
   return (
-    <div className="relative flex h-[calc(100dvh-56px)] flex-col">
-      <MapboxMap
-        className="absolute inset-0"
-        onMapClick={!activeRide ? handleMapClick : undefined}
-        onGeolocate={!activeRide ? handleGeolocate : undefined}
-        showGeolocate={!activeRide}
-        markers={markers}
-        routeCoords={routeCoords}
-      />
+    <div className="flex h-[calc(100dvh-56px)] flex-col overflow-hidden">
+      {/* Booking / Active ride card on top */}
+      <div className="relative z-20 shrink-0 safe-top">
+        <AnimatePresence mode="wait">
+          {activeRide ? (
+            <ActiveRideCard
+              key="active"
+              ride={activeRide}
+              onCancel={() => cancelMutation.mutate(activeRide.id)}
+              cancelling={cancelMutation.isPending}
+            />
+          ) : (
+            <BookingCard
+              key="booking"
+              pickup={pickup}
+              locatingPickup={locatingPickup}
+              dropoff={dropoff}
+              dropoffInput={dropoffInput}
+              setDropoffInput={setDropoffInput}
+              setDropoff={setDropoff}
+              setDropoffCoords={setDropoffCoords}
+              onBook={() => bookMutation.mutate()}
+              booking={bookMutation.isPending}
+              canBook={canBook}
+              pickupMode={pickupMode}
+              onTogglePickupMode={() => {
+                setPickupMode(pickupMode === "gps" ? "manual" : "gps");
+              }}
+              mapboxToken={mapboxToken}
+              routeEstimate={routeEstimate}
+              matchedZone={matchedZone}
+            />
+          )}
+        </AnimatePresence>
+      </div>
 
-      {/* Top overlay */}
-      {!activeRide && (
-        <div className="map-gradient-top pointer-events-none absolute top-0 left-0 right-0 h-20 z-10" />
-      )}
-
-      {/* Bottom Sheet */}
-      <div className="relative z-20 mt-auto">
-        <div className="map-gradient-bottom pt-16 pb-20">
-          <AnimatePresence mode="wait">
-            {activeRide ? (
-              <ActiveRideCard
-                key="active"
-                ride={activeRide}
-                onCancel={() => cancelMutation.mutate(activeRide.id)}
-                cancelling={cancelMutation.isPending}
-              />
-            ) : (
-              <BookingCard
-                key="booking"
-                pickup={pickup}
-                locatingPickup={locatingPickup}
-                dropoff={dropoff}
-                dropoffInput={dropoffInput}
-                setDropoffInput={setDropoffInput}
-                setDropoff={setDropoff}
-                setDropoffCoords={setDropoffCoords}
-                onBook={() => bookMutation.mutate()}
-                booking={bookMutation.isPending}
-                canBook={canBook}
-                pickupMode={pickupMode}
-                onTogglePickupMode={() => {
-                  setPickupMode(pickupMode === "gps" ? "manual" : "gps");
-                }}
-                mapboxToken={mapboxToken}
-                routeEstimate={routeEstimate}
-                matchedZone={matchedZone}
-              />
-            )}
-          </AnimatePresence>
-        </div>
+      {/* Map below */}
+      <div className="relative flex-1 min-h-0">
+        <MapboxMap
+          className="h-full w-full"
+          onMapClick={!activeRide ? handleMapClick : undefined}
+          onGeolocate={!activeRide ? handleGeolocate : undefined}
+          showGeolocate={!activeRide}
+          markers={markers}
+          routeCoords={routeCoords}
+        />
       </div>
 
       {/* Post-ride rating dialog */}
@@ -557,6 +553,9 @@ function BookingCard({
 }) {
   const [suggestions, setSuggestions] = useState<Array<{ place_name: string; center: [number, number] }>>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [advanceBooking, setAdvanceBooking] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [scheduleTime, setScheduleTime] = useState("");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchSuggestions = useCallback(async (query: string) => {
@@ -592,15 +591,66 @@ function BookingCard({
     setShowSuggestions(false);
   }, [setDropoffInput, setDropoff, setDropoffCoords]);
 
+  // Minimum date for advance booking (today)
+  const today = new Date().toISOString().split("T")[0];
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 40 }}
+      initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 40 }}
-      className="mx-4"
+      exit={{ opacity: 0, y: -20 }}
+      className="mx-4 mt-4"
     >
       <div className="glass-card p-5">
-        <p className="mb-4 text-lg font-bold text-foreground">Where to?</p>
+        <div className="mb-4 flex items-center justify-between">
+          <p className="text-lg font-bold text-foreground">Where to?</p>
+          <button
+            onClick={() => setAdvanceBooking(!advanceBooking)}
+            className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-medium transition-colors ${
+              advanceBooking
+                ? "border-accent/50 bg-accent/10 text-accent"
+                : "border-border bg-secondary/80 text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <CalendarClock className="h-3.5 w-3.5" />
+            {advanceBooking ? "Scheduled" : "Schedule"}
+          </button>
+        </div>
+
+        {/* Advance booking date/time */}
+        <AnimatePresence>
+          {advanceBooking && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mb-3 overflow-hidden"
+            >
+              <div className="flex gap-2 rounded-xl border border-accent/30 bg-accent/5 p-3">
+                <div className="flex-1">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Date</p>
+                  <Input
+                    type="date"
+                    min={today}
+                    value={scheduleDate}
+                    onChange={(e) => setScheduleDate(e.target.value)}
+                    className="h-8 border-0 bg-transparent p-0 text-sm font-medium text-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
+                  />
+                </div>
+                <div className="w-px bg-border" />
+                <div className="flex-1">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Time</p>
+                  <Input
+                    type="time"
+                    value={scheduleTime}
+                    onChange={(e) => setScheduleTime(e.target.value)}
+                    className="h-8 border-0 bg-transparent p-0 text-sm font-medium text-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
+                  />
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div className="space-y-3">
           {/* Pickup — GPS or manual pin */}
@@ -719,6 +769,8 @@ function BookingCard({
         >
           {booking ? (
             <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Requesting...</>
+          ) : advanceBooking && scheduleDate ? (
+            `Schedule Ride${routeEstimate ? ` • ₱${routeEstimate.fare.toFixed(0)}` : ""}`
           ) : (
             routeEstimate ? `Request Ride • ₱${routeEstimate.fare.toFixed(0)}` : "Request Ride"
           )}
