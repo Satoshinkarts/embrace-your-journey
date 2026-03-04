@@ -79,7 +79,7 @@ export default function DashboardLayout({ children, fullScreen = false }: Dashbo
         <div className="flex items-center gap-2">
           <button
             onClick={() => setProfileOpen(true)}
-            className="flex items-center justify-center rounded-xl bg-secondary h-8 w-8 text-muted-foreground transition-colors active:bg-muted"
+            className="flex items-center justify-center rounded-full bg-secondary h-8 w-8 text-muted-foreground transition-colors active:bg-muted"
             aria-label="My Profile"
           >
             <User className="h-4 w-4" />
