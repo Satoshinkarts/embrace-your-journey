@@ -141,7 +141,7 @@ export default function Auth() {
                   placeholder="••••••••"
                   required
                   minLength={6}
-                  className="h-12 rounded-xl bg-secondary border-border text-foreground placeholder:text-muted-foreground pr-12"
+                  className="h-12 bg-secondary border-border text-foreground placeholder:text-muted-foreground pr-12"
                 />
                 <button
                   type="button"
