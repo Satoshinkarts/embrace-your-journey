@@ -661,26 +661,9 @@ function BottomBookingPanel({
 
   return (
     <div className="relative z-20 shrink-0 border-t border-border bg-card px-4 pt-3 pb-4 safe-bottom">
-      {/* Details row */}
-      {routeEstimate && (
-        <div className="mb-3 flex items-center justify-between rounded-xl bg-secondary/50 px-4 py-2.5">
-          <div className="flex items-center gap-3">
-            <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-muted-foreground">{routeEstimate.distanceKm.toFixed(1)} km</span>
-              <div className="h-3 w-px bg-border" />
-              <span className="text-xs text-muted-foreground">~{routeEstimate.durationMin} min</span>
-            </div>
-          </div>
-          {matchedZone && (
-            <Badge className="border border-primary/20 bg-primary/10 text-primary text-[10px]">{matchedZone.name}</Badge>
-          )}
-        </div>
-      )}
-
       {/* Payment + Schedule row */}
       <div className="mb-3 flex gap-2">
-        <div className="flex flex-1 items-center gap-2 rounded-xl bg-secondary/50 px-3 py-2.5">
+        <div className="flex flex-1 items-center gap-2 rounded-xl bg-secondary px-3 py-2.5">
           <Banknote className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm font-medium text-foreground">Cash</span>
         </div>
@@ -689,7 +672,7 @@ function BottomBookingPanel({
           className={`flex flex-1 items-center gap-2 rounded-xl px-3 py-2.5 transition-colors ${
             advanceBooking
               ? "bg-accent/10 border border-accent/30"
-              : "bg-secondary/50"
+              : "bg-secondary"
           }`}
         >
           <Clock className={`h-4 w-4 ${advanceBooking ? "text-accent" : "text-muted-foreground"}`} />
@@ -734,22 +717,20 @@ function BottomBookingPanel({
         )}
       </AnimatePresence>
 
-      {/* Vehicle type - Motorcycle only for habal-habal */}
+      {/* Vehicle type - Motorcycle */}
       <div className="mb-3">
-        <div className="flex gap-2">
-          <div className="flex flex-col items-center gap-1.5 rounded-xl border-2 border-primary bg-primary/5 px-4 py-3 flex-1">
-            <Bike className="h-6 w-6 text-primary" />
-            <span className="text-xs font-bold text-foreground">Motorcycle</span>
-            {routeEstimate && (
-              <span className="text-[10px] text-primary font-semibold">₱{routeEstimate.fare.toFixed(0)}</span>
-            )}
-          </div>
+        <div className="flex flex-col items-center gap-1 rounded-2xl border-2 border-primary bg-primary/5 px-4 py-3">
+          <Bike className="h-6 w-6 text-primary" />
+          <span className="text-sm font-bold text-foreground">Motorcycle</span>
+          {routeEstimate && (
+            <span className="text-xs text-primary font-semibold">from ₱{routeEstimate.fare.toFixed(0)}</span>
+          )}
         </div>
       </div>
 
       {/* Order button */}
       <Button
-        className="h-14 w-full rounded-2xl text-base font-bold"
+        className="h-14 w-full rounded-2xl text-base font-bold shadow-lg"
         onClick={onBook}
         disabled={!canBook || booking}
       >
@@ -758,9 +739,9 @@ function BottomBookingPanel({
         ) : (
           <div className="flex w-full items-center justify-between px-2">
             <span className="text-lg font-bold">
-              {routeEstimate ? `₱${routeEstimate.fare.toFixed(0)}` : "—"}
+              {routeEstimate ? `from ₱${routeEstimate.fare.toFixed(0)}` : "—"}
             </span>
-            <span>{advanceBooking && scheduleDate ? "Schedule" : "Order"}</span>
+            <span className="text-base font-bold">{advanceBooking && scheduleDate ? "Schedule" : "Order"}</span>
           </div>
         )}
       </Button>
