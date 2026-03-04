@@ -317,7 +317,7 @@ function ActiveRideOrAvailable() {
   );
 }
 
-function ActiveTripCard({ ride, advanceMutation }: { ride: any; advanceMutation: any }) {
+function ActiveTripCard({ ride, advanceMutation, routeInfo }: { ride: any; advanceMutation: any; routeInfo: { distanceKm: number; durationMin: number } | null }) {
   const nextStep = statusFlow.find((s) => s.from === ride.status);
 
   return (
@@ -340,6 +340,16 @@ function ActiveTripCard({ ride, advanceMutation }: { ride: any; advanceMutation:
             </div>
           </div>
         </div>
+
+        {/* Route info */}
+        {routeInfo && (
+          <div className="mb-3 flex items-center gap-3 rounded-xl bg-info/10 px-4 py-2.5">
+            <Navigation className="h-4 w-4 text-info" />
+            <span className="text-xs font-medium text-info">
+              {routeInfo.distanceKm.toFixed(1)} km · ~{routeInfo.durationMin} min {ride.status === "picked_up" ? "to dropoff" : "to pickup"}
+            </span>
+          </div>
+        )}
 
         {ride.fare && (
           <div className="mb-4 flex items-center justify-between rounded-xl bg-secondary/50 px-4 py-3">
