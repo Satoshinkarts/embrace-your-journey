@@ -12,9 +12,9 @@ import { useAllWallets, useWalletTransactions } from "@/hooks/useWallet";
 
 export default function OperatorWallets() {
   return (
-    <DashboardLayout>
+    <SidebarLayout>
       <WalletsView />
-    </DashboardLayout>
+    </SidebarLayout>
   );
 }
 

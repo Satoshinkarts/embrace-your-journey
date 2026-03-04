@@ -12,9 +12,9 @@ import { useAllWallets, useAdminWalletAdjust, useWalletTransactions } from "@/ho
 
 export default function AdminWallets() {
   return (
-    <DashboardLayout>
+    <SidebarLayout>
       <WalletsView />
-    </DashboardLayout>
+    </SidebarLayout>
   );
 }
 
