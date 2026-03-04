@@ -149,6 +149,7 @@ function AssignView() {
               <p className="text-sm font-semibold text-foreground">{ride.dropoff_address}</p>
               <p className="text-xs text-muted-foreground mt-0.5"><span className="text-muted-foreground/60">→</span> {ride.pickup_address}</p>
               <p className="text-[10px] text-muted-foreground mt-1 mb-3">{new Date(ride.created_at).toLocaleString()}</p>
+              {riders && riders.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {riders.map(rider => (
                     <Button key={rider.user_id} size="sm" variant="outline" className="rounded-xl text-xs"
