@@ -367,56 +367,52 @@ function BookRideSection() {
   }
 
   return (
-    <div className="relative flex h-[calc(100dvh-56px)] flex-col">
-      <MapboxMap
-        className="absolute inset-0"
-        onMapClick={!activeRide ? handleMapClick : undefined}
-        onGeolocate={!activeRide ? handleGeolocate : undefined}
-        showGeolocate={!activeRide}
-        markers={markers}
-        routeCoords={routeCoords}
-      />
+    <div className="flex h-[calc(100dvh-56px)] flex-col overflow-hidden">
+      {/* Booking / Active ride card on top */}
+      <div className="relative z-20 shrink-0 safe-top">
+        <AnimatePresence mode="wait">
+          {activeRide ? (
+            <ActiveRideCard
+              key="active"
+              ride={activeRide}
+              onCancel={() => cancelMutation.mutate(activeRide.id)}
+              cancelling={cancelMutation.isPending}
+            />
+          ) : (
+            <BookingCard
+              key="booking"
+              pickup={pickup}
+              locatingPickup={locatingPickup}
+              dropoff={dropoff}
+              dropoffInput={dropoffInput}
+              setDropoffInput={setDropoffInput}
+              setDropoff={setDropoff}
+              setDropoffCoords={setDropoffCoords}
+              onBook={() => bookMutation.mutate()}
+              booking={bookMutation.isPending}
+              canBook={canBook}
+              pickupMode={pickupMode}
+              onTogglePickupMode={() => {
+                setPickupMode(pickupMode === "gps" ? "manual" : "gps");
+              }}
+              mapboxToken={mapboxToken}
+              routeEstimate={routeEstimate}
+              matchedZone={matchedZone}
+            />
+          )}
+        </AnimatePresence>
+      </div>
 
-      {/* Top overlay */}
-      {!activeRide && (
-        <div className="map-gradient-top pointer-events-none absolute top-0 left-0 right-0 h-20 z-10" />
-      )}
-
-      {/* Bottom Sheet */}
-      <div className="relative z-20 mt-auto">
-        <div className="map-gradient-bottom pt-16 pb-20">
-          <AnimatePresence mode="wait">
-            {activeRide ? (
-              <ActiveRideCard
-                key="active"
-                ride={activeRide}
-                onCancel={() => cancelMutation.mutate(activeRide.id)}
-                cancelling={cancelMutation.isPending}
-              />
-            ) : (
-              <BookingCard
-                key="booking"
-                pickup={pickup}
-                locatingPickup={locatingPickup}
-                dropoff={dropoff}
-                dropoffInput={dropoffInput}
-                setDropoffInput={setDropoffInput}
-                setDropoff={setDropoff}
-                setDropoffCoords={setDropoffCoords}
-                onBook={() => bookMutation.mutate()}
-                booking={bookMutation.isPending}
-                canBook={canBook}
-                pickupMode={pickupMode}
-                onTogglePickupMode={() => {
-                  setPickupMode(pickupMode === "gps" ? "manual" : "gps");
-                }}
-                mapboxToken={mapboxToken}
-                routeEstimate={routeEstimate}
-                matchedZone={matchedZone}
-              />
-            )}
-          </AnimatePresence>
-        </div>
+      {/* Map below */}
+      <div className="relative flex-1 min-h-0">
+        <MapboxMap
+          className="h-full w-full"
+          onMapClick={!activeRide ? handleMapClick : undefined}
+          onGeolocate={!activeRide ? handleGeolocate : undefined}
+          showGeolocate={!activeRide}
+          markers={markers}
+          routeCoords={routeCoords}
+        />
       </div>
 
       {/* Post-ride rating dialog */}
