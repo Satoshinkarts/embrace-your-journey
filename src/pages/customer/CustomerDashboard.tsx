@@ -399,7 +399,8 @@ function BookRideSection() {
       : []),
   ];
 
-  const canBook = !!pickup.trim() && !!(dropoff.trim() || dropoffInput.trim());
+  const pickupReady = !!pickup.trim() && pickup !== "Locating address..." && !pickup.match(/^-?\d+\.\d{4},/);
+  const canBook = pickupReady && !!(dropoff.trim() || dropoffInput.trim());
 
   if (loadingActive) {
     return (
