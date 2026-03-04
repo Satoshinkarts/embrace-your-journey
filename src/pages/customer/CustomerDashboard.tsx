@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -8,7 +8,7 @@ import MapboxMap from "@/components/MapboxMap";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Navigation, Clock, CheckCircle, XCircle, Loader2, X, Star, Wallet, CalendarClock, ChevronRight, Banknote, SlidersHorizontal, Bike } from "lucide-react";
+import { MapPin, Navigation, Clock, CheckCircle, XCircle, Loader2, X, Star, Wallet, CalendarClock, ChevronRight, Banknote, SlidersHorizontal, Bike, RotateCcw, TrendingUp } from "lucide-react";
 import WalletCard from "@/components/WalletCard";
 import RideRatingDialog from "@/components/RideRatingDialog";
 import { useToast } from "@/hooks/use-toast";
@@ -402,6 +402,59 @@ function BookRideSection() {
   const pickupReady = !!pickup.trim() && pickup !== "Locating address..." && !pickup.match(/^-?\d+\.\d{4},/);
   const canBook = pickupReady && !!(dropoff.trim() || dropoffInput.trim());
 
+  // Recent & frequent destinations
+  const { data: pastRides } = useQuery({
+    queryKey: ["past-destinations", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("rides")
+        .select("dropoff_address, dropoff_lat, dropoff_lng, created_at")
+        .eq("customer_id", user!.id)
+        .not("dropoff_lat", "is", null)
+        .not("dropoff_lng", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user && !activeRide,
+  });
+
+  const recentAndFrequent = useMemo(() => {
+    if (!pastRides?.length) return { recent: [], frequent: [] };
+
+    // Deduplicate by address for recents
+    const seen = new Set<string>();
+    const recent = pastRides
+      .filter(r => {
+        if (seen.has(r.dropoff_address)) return false;
+        seen.add(r.dropoff_address);
+        return true;
+      })
+      .slice(0, 3);
+
+    // Frequent: count occurrences, pick top 3
+    const counts = new Map<string, { count: number; ride: typeof pastRides[0] }>();
+    pastRides.forEach(r => {
+      const existing = counts.get(r.dropoff_address);
+      if (existing) existing.count++;
+      else counts.set(r.dropoff_address, { count: 1, ride: r });
+    });
+    const frequent = [...counts.entries()]
+      .filter(([_, v]) => v.count >= 2)
+      .sort((a, b) => b[1].count - a[1].count)
+      .slice(0, 3)
+      .map(([addr, v]) => ({ ...v.ride, count: v.count }));
+
+    return { recent, frequent };
+  }, [pastRides]);
+
+  const handleRebook = useCallback((addr: string, lat: number, lng: number) => {
+    setDropoffInput(addr);
+    setDropoff(addr);
+    setDropoffCoords([lng, lat]);
+  }, []);
+
   if (loadingActive) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -511,6 +564,55 @@ function BookRideSection() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Recent & Frequent destinations — show when no active ride and no dropoff set */}
+      {!activeRide && !dropoffCoords && (recentAndFrequent.recent.length > 0 || recentAndFrequent.frequent.length > 0) && (
+        <div className="shrink-0 z-20 px-4 pb-1 max-h-36 overflow-y-auto">
+          {recentAndFrequent.frequent.length > 0 && (
+            <div className="mb-1.5">
+              <p className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">
+                <TrendingUp className="h-3 w-3" /> Frequent
+              </p>
+              {recentAndFrequent.frequent.map((r, i) => (
+                <button
+                  key={`freq-${i}`}
+                  onClick={() => handleRebook(r.dropoff_address, r.dropoff_lat!, r.dropoff_lng!)}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left transition-colors hover:bg-secondary mb-1"
+                >
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                    <TrendingUp className="h-3.5 w-3.5 text-primary" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-medium text-foreground">{r.dropoff_address}</p>
+                    <p className="text-[10px] text-muted-foreground">{(r as any).count} rides</p>
+                  </div>
+                  <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                </button>
+              ))}
+            </div>
+          )}
+          {recentAndFrequent.recent.length > 0 && (
+            <div>
+              <p className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">
+                <RotateCcw className="h-3 w-3" /> Recent
+              </p>
+              {recentAndFrequent.recent.map((r, i) => (
+                <button
+                  key={`rec-${i}`}
+                  onClick={() => handleRebook(r.dropoff_address, r.dropoff_lat!, r.dropoff_lng!)}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left transition-colors hover:bg-secondary mb-1"
+                >
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-warning/10">
+                    <RotateCcw className="h-3.5 w-3.5 text-warning" />
+                  </div>
+                  <p className="truncate text-xs font-medium text-foreground min-w-0 flex-1">{r.dropoff_address}</p>
+                  <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Map in the middle — shrinks to fit so bottom panel always shows */}
       <div className="relative flex-1 min-h-0">
