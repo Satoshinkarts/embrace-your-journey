@@ -63,7 +63,7 @@ export default function Auth() {
           <p className="mt-2 text-sm text-muted-foreground max-w-xs">
             We sent a password reset link to <span className="font-medium text-foreground">{email}</span>
           </p>
-          <Button variant="outline" className="mt-6 rounded-xl" onClick={() => { setMode("login"); setResetSent(false); }}>
+          <Button variant="outline" className="mt-6" onClick={() => { setMode("login"); setResetSent(false); }}>
             Back to Sign In
           </Button>
         </div>
