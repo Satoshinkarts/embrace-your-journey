@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import DashboardLayout from "@/components/layout/DashboardLayout";
+import SidebarLayout from "@/components/layout/SidebarLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,9 +12,9 @@ import { useAllWallets, useAdminWalletAdjust, useWalletTransactions } from "@/ho
 
 export default function AdminWallets() {
   return (
-    <DashboardLayout>
+    <SidebarLayout>
       <WalletsView />
-    </DashboardLayout>
+    </SidebarLayout>
   );
 }
 
@@ -59,7 +59,7 @@ function WalletsView() {
 
   return (
     <div>
-      <h2 className="mb-4 text-lg font-bold text-foreground">Wallet Management</h2>
+      <h2 className="mb-6 text-xl font-bold text-foreground">Wallet Management</h2>
 
       {/* Search */}
       <div className="relative mb-4">

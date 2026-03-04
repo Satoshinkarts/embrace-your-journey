@@ -71,9 +71,12 @@ function MonitorView() {
           <div className="mx-4 space-y-2 max-h-48 overflow-y-auto">
             {rides?.slice(0, 8).map((ride, i) => (
               <motion.div key={ride.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }} className="glass-card p-3">
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-medium text-foreground">{ride.pickup_address} → {ride.dropoff_address}</p>
+                    <p className="truncate text-xs font-semibold text-foreground">{ride.dropoff_address}</p>
+                    <p className="truncate text-[10px] text-muted-foreground mt-0.5">
+                      <span className="text-muted-foreground/60">→</span> {ride.pickup_address}
+                    </p>
                     <p className="text-[10px] text-muted-foreground">{new Date(ride.created_at).toLocaleTimeString()}</p>
                   </div>
                   <Badge className={`${statusColor[ride.status] || "bg-secondary text-foreground"} border text-[10px] capitalize shrink-0`}>
@@ -143,8 +146,9 @@ function AssignView() {
         <div className="space-y-3">
           {unassignedRides.map((ride, i) => (
             <motion.div key={ride.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }} className="glass-card p-4">
-              <p className="text-sm font-medium text-foreground">{ride.pickup_address} → {ride.dropoff_address}</p>
-              <p className="text-[10px] text-muted-foreground mb-3">{new Date(ride.created_at).toLocaleString()}</p>
+              <p className="text-sm font-semibold text-foreground">{ride.dropoff_address}</p>
+              <p className="text-xs text-muted-foreground mt-0.5"><span className="text-muted-foreground/60">→</span> {ride.pickup_address}</p>
+              <p className="text-[10px] text-muted-foreground mt-1 mb-3">{new Date(ride.created_at).toLocaleString()}</p>
               {riders && riders.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {riders.map(rider => (

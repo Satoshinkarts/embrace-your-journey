@@ -443,7 +443,7 @@ function TripHistory() {
 
   return (
     <div>
-      <h2 className="mb-4 text-lg font-bold text-foreground">Trip History</h2>
+      <h2 className="mb-6 text-xl font-bold text-foreground">Trip History</h2>
       {isLoading ? <LoadingSkeleton /> : !trips?.length ? (
         <div className="glass-card p-8 text-center">
           <Clock className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
@@ -455,14 +455,21 @@ function TripHistory() {
             <motion.div key={trip.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }} className="glass-card p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-foreground">{trip.pickup_address}</p>
-                  <p className="truncate text-xs text-muted-foreground">→ {trip.dropoff_address}</p>
+                  <p className="truncate text-sm font-semibold text-foreground">{trip.dropoff_address}</p>
+                  <p className="truncate text-xs text-muted-foreground mt-0.5">
+                    <span className="text-muted-foreground/60">→</span> {trip.pickup_address}
+                  </p>
+                  <p className="mt-1.5 text-[10px] text-muted-foreground">
+                    {new Date(trip.created_at).toLocaleDateString()} · {new Date(trip.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </p>
                 </div>
-                <div className="shrink-0 text-right">
-                  <Badge className="border bg-secondary text-foreground border-border text-[10px] capitalize">
+                <div className="shrink-0 text-right space-y-1.5">
+                  <Badge className={`border text-[10px] capitalize ${
+                    trip.status === "completed" ? "bg-primary/10 text-primary border-primary/30" : "bg-secondary text-foreground border-border"
+                  }`}>
                     {(trip.status as string).replace("_", " ")}
                   </Badge>
-                  {trip.fare && <p className="mt-1 text-sm font-bold text-primary">₱{Number(trip.fare).toFixed(2)}</p>}
+                  {trip.fare && <p className="text-sm font-bold text-foreground">₱{Number(trip.fare).toFixed(2)}</p>}
                 </div>
               </div>
             </motion.div>
@@ -492,7 +499,7 @@ function EarningsView() {
 
   return (
     <div>
-      <h2 className="mb-4 text-lg font-bold text-foreground">Earnings</h2>
+      <h2 className="mb-6 text-xl font-bold text-foreground">Earnings</h2>
 
       {/* Wallet */}
       <div className="mb-4">
@@ -521,12 +528,19 @@ function EarningsView() {
           <p className="mb-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Recent</p>
           <div className="space-y-2">
             {completedTrips.slice(0, 10).map((t, i) => (
-              <motion.div key={t.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.04 }} className="glass-card flex items-center justify-between p-3">
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm text-foreground">{t.pickup_address} → {t.dropoff_address}</p>
-                  <p className="text-[10px] text-muted-foreground">{new Date(t.completed_at!).toLocaleString()}</p>
+              <motion.div key={t.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.04 }} className="glass-card p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-foreground">{t.dropoff_address}</p>
+                    <p className="truncate text-xs text-muted-foreground mt-0.5">
+                      <span className="text-muted-foreground/60">→</span> {t.pickup_address}
+                    </p>
+                    <p className="mt-1.5 text-[10px] text-muted-foreground">
+                      {new Date(t.completed_at!).toLocaleDateString()} · {new Date(t.completed_at!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                  <p className="shrink-0 ml-3 text-sm font-bold text-foreground">₱{Number(t.fare).toFixed(2)}</p>
                 </div>
-                <p className="shrink-0 ml-3 font-bold text-primary">₱{Number(t.fare).toFixed(2)}</p>
               </motion.div>
             ))}
           </div>

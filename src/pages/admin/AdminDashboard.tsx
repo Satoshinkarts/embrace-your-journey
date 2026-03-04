@@ -443,11 +443,14 @@ function AdminRidesView() {
               className="glass-card p-4 cursor-pointer hover:ring-1 hover:ring-primary/20 transition-all"
               onClick={() => setSelectedRideId(ride.id)}
             >
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-foreground">{ride.pickup_address} → {ride.dropoff_address}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">
-                    {new Date(ride.created_at).toLocaleString()}
+                  <p className="truncate text-sm font-semibold text-foreground">{ride.dropoff_address}</p>
+                  <p className="truncate text-xs text-muted-foreground mt-0.5">
+                    <span className="text-muted-foreground/60">→</span> {ride.pickup_address}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-1.5">
+                    {new Date(ride.created_at).toLocaleDateString()} · {new Date(ride.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     {ride.fare && <> · ₱{Number(ride.fare).toFixed(2)}</>}
                   </p>
                 </div>

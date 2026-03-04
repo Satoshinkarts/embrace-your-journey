@@ -47,7 +47,7 @@ export function CustomerRatings() {
   return (
     <DashboardLayout>
       <div>
-        <h2 className="mb-4 text-lg font-bold text-foreground">My Ratings</h2>
+        <h2 className="mb-4 text-xl font-bold text-foreground">My Ratings</h2>
         <RatingsSection />
       </div>
     </DashboardLayout>
@@ -58,7 +58,7 @@ export function CustomerWallet() {
   return (
     <DashboardLayout>
       <div>
-        <h2 className="mb-4 text-lg font-bold text-foreground">My Wallet</h2>
+        <h2 className="mb-4 text-xl font-bold text-foreground">My Wallet</h2>
         <WalletCard />
       </div>
     </DashboardLayout>
@@ -969,7 +969,7 @@ function RideHistory() {
 
   return (
     <div>
-      <h2 className="mb-4 text-lg font-bold text-foreground">Ride History</h2>
+      <h2 className="mb-6 text-xl font-bold text-foreground">Ride History</h2>
       {isLoading ? <LoadingSkeleton /> : !rides?.length ? (
         <div className="glass-card p-8 text-center">
           <Clock className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
@@ -990,35 +990,39 @@ function RideHistory() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-foreground">{ride.pickup_address}</p>
-                    <p className="truncate text-xs text-muted-foreground">→ {ride.dropoff_address}</p>
-                    <p className="mt-1 text-[10px] text-muted-foreground">{new Date(ride.created_at).toLocaleString()}</p>
+                    <p className="truncate text-sm font-semibold text-foreground">{ride.dropoff_address}</p>
+                    <p className="truncate text-xs text-muted-foreground mt-0.5">
+                      <span className="text-muted-foreground/60">→</span> {ride.pickup_address}
+                    </p>
+                    <p className="mt-1.5 text-[10px] text-muted-foreground">
+                      {new Date(ride.created_at).toLocaleDateString()} · {new Date(ride.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
                   </div>
-                  <div className="shrink-0 text-right">
+                  <div className="shrink-0 text-right space-y-1.5">
                     <Badge className={`${config.color} border text-[10px]`}>{config.label}</Badge>
                     {ride.fare && (
-                      <p className="mt-1 text-sm font-bold text-foreground">₱{Number(ride.fare).toFixed(2)}</p>
+                      <p className="text-sm font-bold text-foreground">₱{Number(ride.fare).toFixed(2)}</p>
                     )}
                   </div>
                 </div>
                 {/* Review section */}
                 {ride.status === "completed" && review && (
-                  <div className="mt-3 flex items-center gap-2 rounded-lg bg-secondary/50 px-3 py-2">
+                  <div className="mt-3 space-y-1">
                     <div className="flex items-center gap-0.5">
                       {Array.from({ length: review.rating }).map((_, j) => (
-                        <Star key={j} className="h-3 w-3 fill-warning text-warning" />
+                        <Star key={j} className="h-3.5 w-3.5 fill-warning text-warning" />
                       ))}
                       {Array.from({ length: 5 - review.rating }).map((_, j) => (
-                        <Star key={j} className="h-3 w-3 text-muted-foreground/30" />
+                        <Star key={j} className="h-3.5 w-3.5 text-muted-foreground/20" />
                       ))}
                     </div>
                     {review.comment && (
-                      <p className="truncate text-xs text-muted-foreground italic">"{review.comment}"</p>
+                      <p className="text-xs text-muted-foreground italic">"{review.comment}"</p>
                     )}
                   </div>
                 )}
                 {ride.status === "completed" && !review && (
-                  <p className="mt-2 text-[10px] text-muted-foreground/60 italic">No review left</p>
+                  <p className="mt-2.5 text-[10px] text-muted-foreground/50 italic">No reviews available</p>
                 )}
               </motion.div>
             );
