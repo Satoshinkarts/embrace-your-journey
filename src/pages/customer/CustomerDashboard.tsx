@@ -8,7 +8,7 @@ import MapboxMap from "@/components/MapboxMap";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Navigation, Clock, CheckCircle, XCircle, Loader2, X, Star, Wallet, CalendarClock } from "lucide-react";
+import { MapPin, Navigation, Clock, CheckCircle, XCircle, Loader2, X, Star, Wallet, CalendarClock, ChevronRight, Banknote, SlidersHorizontal, Bike } from "lucide-react";
 import WalletCard from "@/components/WalletCard";
 import RideRatingDialog from "@/components/RideRatingDialog";
 import { useToast } from "@/hooks/use-toast";
@@ -141,6 +141,9 @@ function BookRideSection() {
   const [mapboxToken, setMapboxToken] = useState<string | null>(null);
   const { data: zones } = useActiveZones();
   const [matchedZone, setMatchedZone] = useState<Zone | null>(null);
+  const [suggestions, setSuggestions] = useState<Array<{ place_name: string; center: [number, number] }>>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Fetch mapbox token for geocoding
   useEffect(() => {
@@ -153,6 +156,38 @@ function BookRideSection() {
   }, []);
 
   const [pickupMode, setPickupMode] = useState<"gps" | "manual">("gps");
+
+  const fetchSuggestions = useCallback(async (query: string) => {
+    if (!mapboxToken || query.length < 3) { setSuggestions([]); return; }
+    try {
+      const res = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${mapboxToken}&limit=5&types=address,poi,place,locality&country=PH&bbox=122.4,9.4,125.1,12.7`
+      );
+      const data = await res.json();
+      setSuggestions(data.features?.map((f: any) => ({ place_name: f.place_name, center: f.center })) || []);
+    } catch { setSuggestions([]); }
+  }, [mapboxToken]);
+
+  const handleDropoffChange = useCallback((value: string) => {
+    setDropoffInput(value);
+    setDropoff(value);
+    setDropoffCoords(null);
+    setShowSuggestions(true);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => fetchSuggestions(value), 300);
+  }, [setDropoffInput, setDropoff, fetchSuggestions]);
+
+  const selectSuggestion = useCallback((s: { place_name: string; center: [number, number] }) => {
+    setDropoffInput(s.place_name);
+    setDropoff(s.place_name);
+    setDropoffCoords([s.center[0], s.center[1]]);
+    setSuggestions([]);
+    setShowSuggestions(false);
+  }, [setDropoffInput, setDropoff]);
+
+  const onTogglePickupMode = useCallback(() => {
+    setPickupMode(prev => prev === "gps" ? "manual" : "gps");
+  }, []);
 
   // GPS auto-detect pickup location
   const handleGeolocate = useCallback(async (lng: number, lat: number) => {
@@ -368,8 +403,8 @@ function BookRideSection() {
 
   return (
     <div className="flex h-[calc(100dvh-56px)] flex-col overflow-hidden">
-      {/* Booking / Active ride card on top */}
-      <div className="relative z-20 shrink-0 safe-top">
+      {/* Top: Pickup + Destination cards */}
+      <div className="relative z-20 shrink-0 px-4 pt-3 pb-1 space-y-2">
         <AnimatePresence mode="wait">
           {activeRide ? (
             <ActiveRideCard
@@ -379,31 +414,94 @@ function BookRideSection() {
               cancelling={cancelMutation.isPending}
             />
           ) : (
-            <BookingCard
-              key="booking"
-              pickup={pickup}
-              locatingPickup={locatingPickup}
-              dropoff={dropoff}
-              dropoffInput={dropoffInput}
-              setDropoffInput={setDropoffInput}
-              setDropoff={setDropoff}
-              setDropoffCoords={setDropoffCoords}
-              onBook={() => bookMutation.mutate()}
-              booking={bookMutation.isPending}
-              canBook={canBook}
-              pickupMode={pickupMode}
-              onTogglePickupMode={() => {
-                setPickupMode(pickupMode === "gps" ? "manual" : "gps");
-              }}
-              mapboxToken={mapboxToken}
-              routeEstimate={routeEstimate}
-              matchedZone={matchedZone}
-            />
+            <motion.div
+              key="booking-top"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-2"
+            >
+              {/* Pickup card */}
+              <div className={`rounded-2xl border p-4 ${pickupMode === "manual" ? "border-warning/40 bg-warning/5" : "border-border bg-card"}`}>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-primary">
+                    <div className="h-2.5 w-2.5 rounded-full bg-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] uppercase tracking-wider text-primary font-semibold">Pick-up location</p>
+                    {pickupMode === "manual" && !pickup ? (
+                      <p className="text-sm text-warning font-medium mt-0.5">Tap the map to pin your pickup</p>
+                    ) : locatingPickup ? (
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                        <p className="text-sm text-muted-foreground">Getting GPS location...</p>
+                      </div>
+                    ) : (
+                      <p className="truncate text-sm font-semibold text-foreground mt-0.5">{pickup}</p>
+                    )}
+                  </div>
+                  <button onClick={onTogglePickupMode} className="shrink-0 rounded-lg border border-border bg-secondary/80 px-2.5 py-1.5 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors">
+                    {pickupMode === "gps" ? "Pin" : "GPS"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Destination card */}
+              <div className="relative">
+                <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-warning/20">
+                    <MapPin className="h-4 w-4 text-warning" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] uppercase tracking-wider text-warning font-semibold">Destination</p>
+                    <Input
+                      value={dropoffInput}
+                      onChange={(e) => handleDropoffChange(e.target.value)}
+                      onFocus={() => { if (suggestions.length) setShowSuggestions(true); }}
+                      onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                      placeholder="Search address or tap map"
+                      className="h-7 border-0 bg-transparent p-0 text-sm font-semibold text-foreground placeholder:text-muted-foreground/50 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    />
+                  </div>
+                  {dropoffInput ? (
+                    <button onClick={() => { setDropoffInput(""); setDropoff(""); setDropoffCoords(null); setSuggestions([]); }} className="text-muted-foreground shrink-0">
+                      <X className="h-4 w-4" />
+                    </button>
+                  ) : (
+                    <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
+                  )}
+                </div>
+
+                {/* Suggestions dropdown */}
+                <AnimatePresence>
+                  {showSuggestions && suggestions.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-xl border border-border bg-card shadow-xl"
+                    >
+                      {suggestions.map((s, i) => (
+                        <button
+                          key={i}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => selectSuggestion(s)}
+                          className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-secondary/80 border-b border-border last:border-0"
+                        >
+                          <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
+                          <span className="text-sm text-foreground line-clamp-2">{s.place_name}</span>
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* Map below */}
+      {/* Map in the middle */}
       <div className="relative flex-1 min-h-0">
         <MapboxMap
           className="h-full w-full"
@@ -414,6 +512,17 @@ function BookRideSection() {
           routeCoords={routeCoords}
         />
       </div>
+
+      {/* Bottom panel — details + order */}
+      {!activeRide && (
+        <BottomBookingPanel
+          routeEstimate={routeEstimate}
+          matchedZone={matchedZone}
+          onBook={() => bookMutation.mutate()}
+          booking={bookMutation.isPending}
+          canBook={canBook}
+        />
+      )}
 
       {/* Post-ride rating dialog */}
       {ratingRide && (
@@ -536,251 +645,126 @@ function ActiveRideCard({ ride, onCancel, cancelling }: { ride: any; onCancel: (
   );
 }
 
-function BookingCard({
-  pickup, locatingPickup, dropoff, dropoffInput, setDropoffInput, setDropoff, setDropoffCoords, onBook, booking, canBook, pickupMode, onTogglePickupMode, mapboxToken, routeEstimate, matchedZone,
+function BottomBookingPanel({
+  routeEstimate, matchedZone, onBook, booking, canBook,
 }: {
-  pickup: string; locatingPickup: boolean;
-  dropoff: string; dropoffInput: string;
-  setDropoffInput: (v: string) => void;
-  setDropoff: (v: string) => void;
-  setDropoffCoords: (v: [number, number] | null) => void;
-  onBook: () => void; booking: boolean; canBook: boolean;
-  pickupMode: "gps" | "manual";
-  onTogglePickupMode: () => void;
-  mapboxToken: string | null;
   routeEstimate: { distanceKm: number; durationMin: number; fare: number } | null;
   matchedZone: Zone | null;
+  onBook: () => void;
+  booking: boolean;
+  canBook: boolean;
 }) {
-  const [suggestions, setSuggestions] = useState<Array<{ place_name: string; center: [number, number] }>>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
   const [advanceBooking, setAdvanceBooking] = useState(false);
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleTime, setScheduleTime] = useState("");
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const fetchSuggestions = useCallback(async (query: string) => {
-    if (!mapboxToken || query.length < 3) {
-      setSuggestions([]);
-      return;
-    }
-    try {
-      const res = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${mapboxToken}&limit=5&types=address,poi,place,locality&country=PH&bbox=122.4,9.4,125.1,12.7`
-      );
-      const data = await res.json();
-      setSuggestions(data.features?.map((f: any) => ({ place_name: f.place_name, center: f.center })) || []);
-    } catch {
-      setSuggestions([]);
-    }
-  }, [mapboxToken]);
-
-  const handleDropoffChange = useCallback((value: string) => {
-    setDropoffInput(value);
-    setDropoff(value);
-    setDropoffCoords(null);
-    setShowSuggestions(true);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => fetchSuggestions(value), 300);
-  }, [setDropoffInput, setDropoff, setDropoffCoords, fetchSuggestions]);
-
-  const selectSuggestion = useCallback((s: { place_name: string; center: [number, number] }) => {
-    setDropoffInput(s.place_name);
-    setDropoff(s.place_name);
-    setDropoffCoords([s.center[0], s.center[1]]);
-    setSuggestions([]);
-    setShowSuggestions(false);
-  }, [setDropoffInput, setDropoff, setDropoffCoords]);
-
-  // Minimum date for advance booking (today)
   const today = new Date().toISOString().split("T")[0];
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="mx-4 mt-4"
-    >
-      <div className="glass-card p-5">
-        <div className="mb-4 flex items-center justify-between">
-          <p className="text-lg font-bold text-foreground">Where to?</p>
-          <button
-            onClick={() => setAdvanceBooking(!advanceBooking)}
-            className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-medium transition-colors ${
-              advanceBooking
-                ? "border-accent/50 bg-accent/10 text-accent"
-                : "border-border bg-secondary/80 text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <CalendarClock className="h-3.5 w-3.5" />
-            {advanceBooking ? "Scheduled" : "Schedule"}
-          </button>
-        </div>
-
-        {/* Advance booking date/time */}
-        <AnimatePresence>
-          {advanceBooking && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mb-3 overflow-hidden"
-            >
-              <div className="flex gap-2 rounded-xl border border-accent/30 bg-accent/5 p-3">
-                <div className="flex-1">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Date</p>
-                  <Input
-                    type="date"
-                    min={today}
-                    value={scheduleDate}
-                    onChange={(e) => setScheduleDate(e.target.value)}
-                    className="h-8 border-0 bg-transparent p-0 text-sm font-medium text-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
-                  />
-                </div>
-                <div className="w-px bg-border" />
-                <div className="flex-1">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Time</p>
-                  <Input
-                    type="time"
-                    value={scheduleTime}
-                    onChange={(e) => setScheduleTime(e.target.value)}
-                    className="h-8 border-0 bg-transparent p-0 text-sm font-medium text-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
-                  />
-                </div>
-              </div>
-            </motion.div>
+    <div className="relative z-20 shrink-0 border-t border-border bg-card px-4 pt-3 pb-4 safe-bottom">
+      {/* Details row */}
+      {routeEstimate && (
+        <div className="mb-3 flex items-center justify-between rounded-xl bg-secondary/50 px-4 py-2.5">
+          <div className="flex items-center gap-3">
+            <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-muted-foreground">{routeEstimate.distanceKm.toFixed(1)} km</span>
+              <div className="h-3 w-px bg-border" />
+              <span className="text-xs text-muted-foreground">~{routeEstimate.durationMin} min</span>
+            </div>
+          </div>
+          {matchedZone && (
+            <Badge className="border border-primary/20 bg-primary/10 text-primary text-[10px]">{matchedZone.name}</Badge>
           )}
-        </AnimatePresence>
-
-        <div className="space-y-3">
-          {/* Pickup — GPS or manual pin */}
-          <div className={`flex w-full items-center gap-3 rounded-xl border p-3.5 ${pickupMode === "manual" ? "border-warning/50 bg-warning/5" : "border-primary/30 bg-primary/5"}`}>
-            <div className="h-2.5 w-2.5 rounded-full bg-primary shadow-[0_0_6px_rgba(34,197,94,0.4)]" />
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                {pickupMode === "manual" ? "Tap map to set pickup" : "Pickup (GPS)"}
-              </p>
-              {pickupMode === "manual" && !pickup ? (
-                <p className="text-sm text-warning font-medium mt-0.5">Tap the map to pin your pickup</p>
-              ) : locatingPickup ? (
-                <div className="flex items-center gap-2 mt-0.5">
-                  <Loader2 className="h-3 w-3 animate-spin text-primary" />
-                  <p className="text-sm text-muted-foreground">Getting GPS location...</p>
-                </div>
-              ) : (
-                <p className="truncate text-sm font-medium text-foreground">{pickup}</p>
-              )}
-            </div>
-            <button onClick={onTogglePickupMode} className="shrink-0 rounded-lg border border-border bg-secondary/80 px-2 py-1 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors">
-              {pickupMode === "gps" ? "Pin" : "GPS"}
-            </button>
-          </div>
-
-          {/* Dropoff — tap map, type, or select suggestion */}
-          <div className="relative">
-            <div className="rounded-xl border border-border bg-secondary/50 p-3.5">
-              <div className="flex items-center gap-3">
-                <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-warning shadow-[0_0_6px_rgba(245,158,11,0.4)]" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Dropoff</p>
-                  <Input
-                    value={dropoffInput}
-                    onChange={(e) => handleDropoffChange(e.target.value)}
-                    onFocus={() => { if (suggestions.length) setShowSuggestions(true); }}
-                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                    placeholder="Search address or tap the map"
-                    className="h-8 border-0 bg-transparent p-0 text-sm font-medium text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0"
-                  />
-                </div>
-                {dropoffInput && (
-                  <button onClick={() => { setDropoffInput(""); setDropoff(""); setDropoffCoords(null); setSuggestions([]); }} className="text-muted-foreground shrink-0">
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Suggestions dropdown */}
-            <AnimatePresence>
-              {showSuggestions && suggestions.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: -4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -4 }}
-                  className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-xl border border-border bg-card shadow-lg"
-                >
-                  {suggestions.map((s, i) => (
-                    <button
-                      key={i}
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => selectSuggestion(s)}
-                      className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-secondary/80 border-b border-border last:border-0"
-                    >
-                      <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
-                      <span className="text-sm text-foreground line-clamp-2">{s.place_name}</span>
-                    </button>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
         </div>
+      )}
 
-        {/* Zone indicator */}
-        {matchedZone && (
-          <div className="mt-3 flex items-center gap-2">
-            <MapPin className="h-3.5 w-3.5 text-primary" />
-            <span className="text-xs text-muted-foreground">Zone: <span className="font-medium text-foreground">{matchedZone.name}</span></span>
-            {matchedZone.premium_fee > 0 && (
-              <Badge className="border border-warning/20 bg-warning/10 text-warning text-[10px]">+₱{Number(matchedZone.premium_fee).toFixed(0)} premium</Badge>
-            )}
-          </div>
-        )}
+      {/* Payment + Schedule row */}
+      <div className="mb-3 flex gap-2">
+        <div className="flex flex-1 items-center gap-2 rounded-xl bg-secondary/50 px-3 py-2.5">
+          <Banknote className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-foreground">Cash</span>
+        </div>
+        <button
+          onClick={() => setAdvanceBooking(!advanceBooking)}
+          className={`flex flex-1 items-center gap-2 rounded-xl px-3 py-2.5 transition-colors ${
+            advanceBooking
+              ? "bg-accent/10 border border-accent/30"
+              : "bg-secondary/50"
+          }`}
+        >
+          <Clock className={`h-4 w-4 ${advanceBooking ? "text-accent" : "text-muted-foreground"}`} />
+          <span className={`text-sm font-medium ${advanceBooking ? "text-accent" : "text-foreground"}`}>
+            {advanceBooking ? "Scheduled" : "Now"}
+          </span>
+        </button>
+      </div>
 
-        {/* Fare & Distance Estimate */}
-        {routeEstimate && (
+      {/* Advance booking date/time */}
+      <AnimatePresence>
+        {advanceBooking && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
-            className="mt-4 flex items-center justify-between rounded-xl bg-secondary/50 px-4 py-3"
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-3 overflow-hidden"
           >
-            <div className="flex items-center gap-3">
-              <div>
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Distance</p>
-                <p className="text-sm font-bold text-foreground">{routeEstimate.distanceKm.toFixed(1)} km</p>
+            <div className="flex gap-2 rounded-xl border border-accent/30 bg-accent/5 p-3">
+              <div className="flex-1">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Date</p>
+                <Input
+                  type="date"
+                  min={today}
+                  value={scheduleDate}
+                  onChange={(e) => setScheduleDate(e.target.value)}
+                  className="h-8 border-0 bg-transparent p-0 text-sm font-medium text-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
+                />
               </div>
-              <div className="h-6 w-px bg-border" />
-              <div>
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">ETA</p>
-                <p className="text-sm font-bold text-foreground">{routeEstimate.durationMin} min</p>
+              <div className="w-px bg-border" />
+              <div className="flex-1">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Time</p>
+                <Input
+                  type="time"
+                  value={scheduleTime}
+                  onChange={(e) => setScheduleTime(e.target.value)}
+                  className="h-8 border-0 bg-transparent p-0 text-sm font-medium text-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
+                />
               </div>
-            </div>
-            <div className="text-right">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Est. Fare</p>
-              <p className="text-lg font-bold text-primary">₱{routeEstimate.fare.toFixed(0)}</p>
             </div>
           </motion.div>
         )}
+      </AnimatePresence>
 
-        <Button
-          className="mt-4 h-12 w-full rounded-xl text-sm font-semibold"
-          onClick={onBook}
-          disabled={!canBook || booking}
-        >
-          {booking ? (
-            <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Requesting...</>
-          ) : advanceBooking && scheduleDate ? (
-            `Schedule Ride${routeEstimate ? ` • ₱${routeEstimate.fare.toFixed(0)}` : ""}`
-          ) : (
-            routeEstimate ? `Request Ride • ₱${routeEstimate.fare.toFixed(0)}` : "Request Ride"
-          )}
-        </Button>
-
-        <p className="mt-3 text-center text-[10px] text-muted-foreground">
-          GPS pickup • Tap "Pin" to set manually • Tap map for dropoff
-        </p>
+      {/* Vehicle type - Motorcycle only for habal-habal */}
+      <div className="mb-3">
+        <div className="flex gap-2">
+          <div className="flex flex-col items-center gap-1.5 rounded-xl border-2 border-primary bg-primary/5 px-4 py-3 flex-1">
+            <Bike className="h-6 w-6 text-primary" />
+            <span className="text-xs font-bold text-foreground">Motorcycle</span>
+            {routeEstimate && (
+              <span className="text-[10px] text-primary font-semibold">₱{routeEstimate.fare.toFixed(0)}</span>
+            )}
+          </div>
+        </div>
       </div>
-    </motion.div>
+
+      {/* Order button */}
+      <Button
+        className="h-14 w-full rounded-2xl text-base font-bold"
+        onClick={onBook}
+        disabled={!canBook || booking}
+      >
+        {booking ? (
+          <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Requesting...</>
+        ) : (
+          <div className="flex w-full items-center justify-between px-2">
+            <span className="text-lg font-bold">
+              {routeEstimate ? `₱${routeEstimate.fare.toFixed(0)}` : "—"}
+            </span>
+            <span>{advanceBooking && scheduleDate ? "Schedule" : "Order"}</span>
+          </div>
+        )}
+      </Button>
+    </div>
   );
 }
 
