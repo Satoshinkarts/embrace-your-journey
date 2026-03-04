@@ -70,7 +70,7 @@ export default function Index() {
         className="relative z-10 w-full max-w-sm space-y-3"
       >
         <Button
-          className="h-12 w-full rounded-xl text-sm font-semibold"
+          className="h-12 w-full text-sm font-semibold"
           onClick={() => navigate("/auth")}
         >
           Get Started
@@ -78,7 +78,7 @@ export default function Index() {
         </Button>
         <Button
           variant="outline"
-          className="h-12 w-full rounded-xl text-sm font-medium"
+          className="h-12 w-full text-sm font-medium"
           onClick={() => navigate("/auth")}
         >
           Sign In

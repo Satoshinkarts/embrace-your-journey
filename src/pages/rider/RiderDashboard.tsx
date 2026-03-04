@@ -109,7 +109,7 @@ function DirectiveBanner() {
             {activeDirective.status === "pending" ? (
               <Button
                 size="sm"
-                className="flex-1 rounded-xl text-xs h-8"
+                 className="flex-1 text-xs h-8"
                 onClick={handleAcknowledge}
                 disabled={updateDirective.isPending}
               >
@@ -119,7 +119,7 @@ function DirectiveBanner() {
             ) : (
               <Button
                 size="sm"
-                className="flex-1 rounded-xl text-xs h-8"
+                className="flex-1 text-xs h-8"
                 onClick={handleComplete}
                 disabled={updateDirective.isPending}
               >
@@ -360,7 +360,7 @@ function ActiveTripCard({ ride, advanceMutation, routeInfo }: { ride: any; advan
 
         {nextStep && (
           <Button
-            className="h-12 w-full rounded-xl text-sm font-semibold"
+            className="h-12 w-full text-sm font-semibold"
             onClick={() => advanceMutation.mutate({ rideId: ride.id, newStatus: nextStep.to })}
             disabled={advanceMutation.isPending}
           >

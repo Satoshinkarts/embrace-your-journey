@@ -63,7 +63,7 @@ export default function Auth() {
           <p className="mt-2 text-sm text-muted-foreground max-w-xs">
             We sent a password reset link to <span className="font-medium text-foreground">{email}</span>
           </p>
-          <Button variant="outline" className="mt-6 rounded-xl" onClick={() => { setMode("login"); setResetSent(false); }}>
+          <Button variant="outline" className="mt-6" onClick={() => { setMode("login"); setResetSent(false); }}>
             Back to Sign In
           </Button>
         </div>
@@ -108,7 +108,7 @@ export default function Auth() {
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Juan Dela Cruz"
                 required
-                className="h-12 rounded-xl bg-secondary border-border text-foreground placeholder:text-muted-foreground"
+                className="h-12 bg-secondary border-border text-foreground placeholder:text-muted-foreground"
               />
             </div>
           )}
@@ -120,7 +120,7 @@ export default function Auth() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               required
-              className="h-12 rounded-xl bg-secondary border-border text-foreground placeholder:text-muted-foreground"
+              className="h-12 bg-secondary border-border text-foreground placeholder:text-muted-foreground"
             />
           </div>
           {mode !== "forgot" && (
@@ -141,7 +141,7 @@ export default function Auth() {
                   placeholder="••••••••"
                   required
                   minLength={6}
-                  className="h-12 rounded-xl bg-secondary border-border text-foreground placeholder:text-muted-foreground pr-12"
+                  className="h-12 bg-secondary border-border text-foreground placeholder:text-muted-foreground pr-12"
                 />
                 <button
                   type="button"
@@ -153,7 +153,7 @@ export default function Auth() {
               </div>
             </div>
           )}
-          <Button type="submit" className="h-12 w-full rounded-xl text-sm font-semibold" disabled={loading}>
+          <Button type="submit" className="h-12 w-full text-sm font-semibold" disabled={loading}>
             {loading
               ? "Loading..."
               : mode === "forgot"

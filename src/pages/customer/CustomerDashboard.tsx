@@ -804,7 +804,7 @@ function ActiveRideCard({ ride, onCancel, cancelling, riderLocation, mapboxToken
         {/* Customer confirmation when rider marks picked_up */}
         {ride.status === "picked_up" && (
           <Button
-            className="mt-4 h-12 w-full rounded-xl text-sm font-semibold"
+            className="mt-4 h-12 w-full text-sm font-semibold"
             onClick={() => confirmMutation.mutate()}
             disabled={confirmMutation.isPending}
           >
@@ -913,7 +913,7 @@ function BottomBookingPanel({
 
       {/* Order button */}
       <Button
-        className="h-14 w-full rounded-2xl text-base font-bold shadow-lg"
+        className="h-14 w-full text-base font-bold shadow-lg"
         onClick={onBook}
         disabled={!canBook || booking}
       >
