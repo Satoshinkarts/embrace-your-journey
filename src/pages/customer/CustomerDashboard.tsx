@@ -47,7 +47,7 @@ export function CustomerRatings() {
   return (
     <DashboardLayout>
       <div>
-        <h2 className="mb-4 text-lg font-bold text-foreground">My Ratings</h2>
+        <h2 className="mb-4 text-xl font-bold text-foreground">My Ratings</h2>
         <RatingsSection />
       </div>
     </DashboardLayout>
