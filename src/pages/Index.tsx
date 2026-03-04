@@ -30,8 +30,8 @@ export default function Index() {
         className="relative z-10 mb-10 text-center"
       >
         <div className="relative mx-auto mb-5 h-24 w-24">
-          <div className="absolute -inset-6 rounded-full bg-white/8 blur-[50px]" />
-          <div className="absolute -inset-3 rounded-full bg-primary/10 blur-[30px]" />
+          <div className="absolute -inset-6 rounded-full bg-primary/10 blur-[50px]" />
+          <div className="absolute -inset-3 rounded-full bg-primary/15 blur-[30px]" />
           <img src={habalLogo} alt="Habal Logo" className="relative h-24 w-24 object-contain drop-shadow-2xl" />
         </div>
         <h1 className="text-2xl font-bold tracking-tight text-foreground">Habal</h1>
