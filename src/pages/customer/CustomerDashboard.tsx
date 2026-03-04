@@ -420,6 +420,8 @@ function BookRideSection() {
               ride={activeRide}
               onCancel={() => cancelMutation.mutate(activeRide.id)}
               cancelling={cancelMutation.isPending}
+              riderLocation={riderLocation}
+              mapboxToken={mapboxToken}
             />
           ) : (
             <motion.div
