@@ -492,7 +492,7 @@ function EarningsView() {
 
   return (
     <div>
-      <h2 className="mb-4 text-lg font-bold text-foreground">Earnings</h2>
+      <h2 className="mb-6 text-xl font-bold text-foreground">Earnings</h2>
 
       {/* Wallet */}
       <div className="mb-4">

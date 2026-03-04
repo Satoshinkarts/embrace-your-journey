@@ -969,7 +969,7 @@ function RideHistory() {
 
   return (
     <div>
-      <h2 className="mb-4 text-lg font-bold text-foreground">Ride History</h2>
+      <h2 className="mb-6 text-xl font-bold text-foreground">Ride History</h2>
       {isLoading ? <LoadingSkeleton /> : !rides?.length ? (
         <div className="glass-card p-8 text-center">
           <Clock className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />

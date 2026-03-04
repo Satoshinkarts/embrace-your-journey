@@ -31,7 +31,7 @@ function WalletsView() {
 
   return (
     <div>
-      <h2 className="mb-4 text-lg font-bold text-foreground">Wallet Overview</h2>
+      <h2 className="mb-6 text-xl font-bold text-foreground">Wallet Overview</h2>
 
       {/* Search */}
       <div className="relative mb-4">
