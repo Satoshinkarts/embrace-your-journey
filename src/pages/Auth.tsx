@@ -120,7 +120,7 @@ export default function Auth() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               required
-              className="h-12 rounded-xl bg-secondary border-border text-foreground placeholder:text-muted-foreground"
+              className="h-12 bg-secondary border-border text-foreground placeholder:text-muted-foreground"
             />
           </div>
           {mode !== "forgot" && (
