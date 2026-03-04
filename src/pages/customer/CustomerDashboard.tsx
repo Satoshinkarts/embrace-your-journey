@@ -58,7 +58,7 @@ export function CustomerWallet() {
   return (
     <DashboardLayout>
       <div>
-        <h2 className="mb-4 text-lg font-bold text-foreground">My Wallet</h2>
+        <h2 className="mb-4 text-xl font-bold text-foreground">My Wallet</h2>
         <WalletCard />
       </div>
     </DashboardLayout>
