@@ -368,8 +368,8 @@ function BookRideSection() {
 
   return (
     <div className="flex h-[calc(100dvh-56px)] flex-col overflow-hidden">
-      {/* Booking / Active ride card on top */}
-      <div className="relative z-20 shrink-0 safe-top">
+      {/* Top: Pickup + Destination cards */}
+      <div className="relative z-20 shrink-0 px-4 pt-3 pb-1 space-y-2">
         <AnimatePresence mode="wait">
           {activeRide ? (
             <ActiveRideCard
@@ -379,31 +379,94 @@ function BookRideSection() {
               cancelling={cancelMutation.isPending}
             />
           ) : (
-            <BookingCard
-              key="booking"
-              pickup={pickup}
-              locatingPickup={locatingPickup}
-              dropoff={dropoff}
-              dropoffInput={dropoffInput}
-              setDropoffInput={setDropoffInput}
-              setDropoff={setDropoff}
-              setDropoffCoords={setDropoffCoords}
-              onBook={() => bookMutation.mutate()}
-              booking={bookMutation.isPending}
-              canBook={canBook}
-              pickupMode={pickupMode}
-              onTogglePickupMode={() => {
-                setPickupMode(pickupMode === "gps" ? "manual" : "gps");
-              }}
-              mapboxToken={mapboxToken}
-              routeEstimate={routeEstimate}
-              matchedZone={matchedZone}
-            />
+            <motion.div
+              key="booking-top"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-2"
+            >
+              {/* Pickup card */}
+              <div className={`rounded-2xl border p-4 ${pickupMode === "manual" ? "border-warning/40 bg-warning/5" : "border-border bg-card"}`}>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-primary">
+                    <div className="h-2.5 w-2.5 rounded-full bg-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] uppercase tracking-wider text-primary font-semibold">Pick-up location</p>
+                    {pickupMode === "manual" && !pickup ? (
+                      <p className="text-sm text-warning font-medium mt-0.5">Tap the map to pin your pickup</p>
+                    ) : locatingPickup ? (
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                        <p className="text-sm text-muted-foreground">Getting GPS location...</p>
+                      </div>
+                    ) : (
+                      <p className="truncate text-sm font-semibold text-foreground mt-0.5">{pickup}</p>
+                    )}
+                  </div>
+                  <button onClick={onTogglePickupMode} className="shrink-0 rounded-lg border border-border bg-secondary/80 px-2.5 py-1.5 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors">
+                    {pickupMode === "gps" ? "Pin" : "GPS"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Destination card */}
+              <div className="relative">
+                <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-warning/20">
+                    <MapPin className="h-4 w-4 text-warning" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] uppercase tracking-wider text-warning font-semibold">Destination</p>
+                    <Input
+                      value={dropoffInput}
+                      onChange={(e) => handleDropoffChange(e.target.value)}
+                      onFocus={() => { if (suggestions.length) setShowSuggestions(true); }}
+                      onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                      placeholder="Search address or tap map"
+                      className="h-7 border-0 bg-transparent p-0 text-sm font-semibold text-foreground placeholder:text-muted-foreground/50 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    />
+                  </div>
+                  {dropoffInput ? (
+                    <button onClick={() => { setDropoffInput(""); setDropoff(""); setDropoffCoords(null); setSuggestions([]); }} className="text-muted-foreground shrink-0">
+                      <X className="h-4 w-4" />
+                    </button>
+                  ) : (
+                    <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
+                  )}
+                </div>
+
+                {/* Suggestions dropdown */}
+                <AnimatePresence>
+                  {showSuggestions && suggestions.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-xl border border-border bg-card shadow-xl"
+                    >
+                      {suggestions.map((s, i) => (
+                        <button
+                          key={i}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => selectSuggestion(s)}
+                          className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-secondary/80 border-b border-border last:border-0"
+                        >
+                          <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
+                          <span className="text-sm text-foreground line-clamp-2">{s.place_name}</span>
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* Map below */}
+      {/* Map in the middle */}
       <div className="relative flex-1 min-h-0">
         <MapboxMap
           className="h-full w-full"
@@ -414,6 +477,17 @@ function BookRideSection() {
           routeCoords={routeCoords}
         />
       </div>
+
+      {/* Bottom panel — details + order */}
+      {!activeRide && (
+        <BottomBookingPanel
+          routeEstimate={routeEstimate}
+          matchedZone={matchedZone}
+          onBook={() => bookMutation.mutate()}
+          booking={bookMutation.isPending}
+          canBook={canBook}
+        />
+      )}
 
       {/* Post-ride rating dialog */}
       {ratingRide && (
