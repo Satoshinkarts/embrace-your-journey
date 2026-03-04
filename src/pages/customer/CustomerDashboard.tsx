@@ -68,11 +68,26 @@ export function CustomerWallet() {
 function RatingsSection() {
   const { user } = useAuth();
   const { data: ratings, isLoading } = useQuery({
-    queryKey: ["my-ratings", user?.id],
+    queryKey: ["my-given-ratings", user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("ratings").select("*").eq("rated_id", user!.id).order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
+      // Get ratings the customer has given (rater_id = user)
+      const { data: ratingsData, error: ratingsError } = await supabase
+        .from("ratings")
+        .select("*")
+        .eq("rater_id", user!.id)
+        .order("created_at", { ascending: false });
+      if (ratingsError) throw ratingsError;
+      if (!ratingsData?.length) return [];
+
+      // Fetch associated rides for context
+      const rideIds = ratingsData.map(r => r.ride_id);
+      const { data: rides } = await supabase
+        .from("rides")
+        .select("id, pickup_address, dropoff_address, fare, completed_at")
+        .in("id", rideIds);
+
+      const rideMap = new Map(rides?.map(r => [r.id, r]) || []);
+      return ratingsData.map(r => ({ ...r, ride: rideMap.get(r.ride_id) }));
     },
     enabled: !!user,
   });
@@ -98,17 +113,31 @@ function RatingsSection() {
           transition={{ delay: i * 0.05 }}
           className="glass-card p-4"
         >
+          {r.ride && (
+            <div className="mb-2">
+              <p className="truncate text-sm font-semibold text-foreground">{r.ride.dropoff_address}</p>
+              <p className="truncate text-xs text-muted-foreground mt-0.5">
+                <span className="text-muted-foreground/60">→</span> {r.ride.pickup_address}
+              </p>
+            </div>
+          )}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5">
               {Array.from({ length: r.rating }).map((_, j) => (
                 <Star key={j} className="h-3.5 w-3.5 fill-warning text-warning" />
               ))}
+              {Array.from({ length: 5 - r.rating }).map((_, j) => (
+                <Star key={`e-${j}`} className="h-3.5 w-3.5 text-muted-foreground/20" />
+              ))}
             </div>
-            <span className="text-[10px] text-muted-foreground">
-              {new Date(r.created_at).toLocaleDateString()}
-            </span>
+            <div className="text-right">
+              {r.ride?.fare && <p className="text-sm font-bold text-foreground">₱{Number(r.ride.fare).toFixed(2)}</p>}
+              <span className="text-[10px] text-muted-foreground">
+                {new Date(r.created_at).toLocaleDateString()}
+              </span>
+            </div>
           </div>
-          {r.comment && <p className="mt-2 text-sm text-foreground">{r.comment}</p>}
+          {r.comment && <p className="mt-2 text-xs text-muted-foreground italic">"{r.comment}"</p>}
         </motion.div>
       ))}
     </div>
