@@ -49,6 +49,10 @@ export default function MapboxMap({
       zoom,
       interactive,
       attributionControl: false,
+      maxBounds: [
+        [121.8, 10.4],  // Southwest corner of Panay Island
+        [123.2, 12.0],  // Northeast corner of Panay Island
+      ],
     });
 
     map.current.addControl(
