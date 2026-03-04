@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Navigation, CheckCircle, Clock, DollarSign, Loader2, Star, Trophy, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { RiderRankingChannel } from "@/components/RankingChannel";
 import { useRiderLocationTracker, useRiderDirectives, useUpdateDirective, type DispatchDirective } from "@/hooks/useRiderTracking";
 import { useUnreadDMCount } from "@/hooks/useUnreadDMs";
