@@ -8,7 +8,7 @@ import MapboxMap from "@/components/MapboxMap";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Navigation, Clock, CheckCircle, XCircle, Loader2, X, Star, Wallet, CalendarClock } from "lucide-react";
+import { MapPin, Navigation, Clock, CheckCircle, XCircle, Loader2, X, Star, Wallet, CalendarClock, ChevronRight, Banknote, SlidersHorizontal, Bike } from "lucide-react";
 import WalletCard from "@/components/WalletCard";
 import RideRatingDialog from "@/components/RideRatingDialog";
 import { useToast } from "@/hooks/use-toast";
