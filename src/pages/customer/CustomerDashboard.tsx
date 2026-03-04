@@ -402,6 +402,59 @@ function BookRideSection() {
   const pickupReady = !!pickup.trim() && pickup !== "Locating address..." && !pickup.match(/^-?\d+\.\d{4},/);
   const canBook = pickupReady && !!(dropoff.trim() || dropoffInput.trim());
 
+  // Recent & frequent destinations
+  const { data: pastRides } = useQuery({
+    queryKey: ["past-destinations", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("rides")
+        .select("dropoff_address, dropoff_lat, dropoff_lng, created_at")
+        .eq("customer_id", user!.id)
+        .not("dropoff_lat", "is", null)
+        .not("dropoff_lng", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user && !activeRide,
+  });
+
+  const recentAndFrequent = useMemo(() => {
+    if (!pastRides?.length) return { recent: [], frequent: [] };
+
+    // Deduplicate by address for recents
+    const seen = new Set<string>();
+    const recent = pastRides
+      .filter(r => {
+        if (seen.has(r.dropoff_address)) return false;
+        seen.add(r.dropoff_address);
+        return true;
+      })
+      .slice(0, 3);
+
+    // Frequent: count occurrences, pick top 3
+    const counts = new Map<string, { count: number; ride: typeof pastRides[0] }>();
+    pastRides.forEach(r => {
+      const existing = counts.get(r.dropoff_address);
+      if (existing) existing.count++;
+      else counts.set(r.dropoff_address, { count: 1, ride: r });
+    });
+    const frequent = [...counts.entries()]
+      .filter(([_, v]) => v.count >= 2)
+      .sort((a, b) => b[1].count - a[1].count)
+      .slice(0, 3)
+      .map(([addr, v]) => ({ ...v.ride, count: v.count }));
+
+    return { recent, frequent };
+  }, [pastRides]);
+
+  const handleRebook = useCallback((addr: string, lat: number, lng: number) => {
+    setDropoffInput(addr);
+    setDropoff(addr);
+    setDropoffCoords([lng, lat]);
+  }, []);
+
   if (loadingActive) {
     return (
       <div className="flex h-full items-center justify-center">
