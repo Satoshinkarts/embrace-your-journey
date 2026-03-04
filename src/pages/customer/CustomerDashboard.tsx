@@ -420,6 +420,8 @@ function BookRideSection() {
               ride={activeRide}
               onCancel={() => cancelMutation.mutate(activeRide.id)}
               cancelling={cancelMutation.isPending}
+              riderLocation={riderLocation}
+              mapboxToken={mapboxToken}
             />
           ) : (
             <motion.div
@@ -545,13 +547,51 @@ function BookRideSection() {
   );
 }
 
-function ActiveRideCard({ ride, onCancel, cancelling }: { ride: any; onCancel: () => void; cancelling: boolean }) {
+function ActiveRideCard({ ride, onCancel, cancelling, riderLocation, mapboxToken }: {
+  ride: any;
+  onCancel: () => void;
+  cancelling: boolean;
+  riderLocation: { lat: number; lng: number; heading: number | null; speed: number | null } | null;
+  mapboxToken: string | null;
+}) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const config = statusConfig[ride.status as RideStatus];
   const StatusIcon = config.icon;
   const steps: RideStatus[] = ["requested", "accepted", "en_route", "picked_up"];
   const currentIdx = steps.indexOf(ride.status as RideStatus);
+
+  // ETA & distance from rider to destination (pickup if not picked up, dropoff if picked up)
+  const [riderEta, setRiderEta] = useState<{ distanceKm: number; durationMin: number } | null>(null);
+
+  useEffect(() => {
+    if (!riderLocation || !mapboxToken) { setRiderEta(null); return; }
+
+    const isPickedUp = ride.status === "picked_up";
+    const destLat = isPickedUp ? ride.dropoff_lat : ride.pickup_lat;
+    const destLng = isPickedUp ? ride.dropoff_lng : ride.pickup_lng;
+    if (!destLat || !destLng) { setRiderEta(null); return; }
+
+    let cancelled = false;
+    const fetchEta = async () => {
+      try {
+        const res = await fetch(
+          `https://api.mapbox.com/directions/v5/mapbox/driving/${riderLocation.lng},${riderLocation.lat};${destLng},${destLat}?overview=false&access_token=${mapboxToken}`
+        );
+        const data = await res.json();
+        if (!cancelled && data.routes?.[0]) {
+          setRiderEta({
+            distanceKm: data.routes[0].distance / 1000,
+            durationMin: Math.ceil(data.routes[0].duration / 60),
+          });
+        }
+      } catch { if (!cancelled) setRiderEta(null); }
+    };
+
+    fetchEta();
+    const interval = setInterval(fetchEta, 15000); // refresh every 15s
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [riderLocation?.lat, riderLocation?.lng, ride.status, mapboxToken]);
 
   // Customer confirms trip completion
   const confirmMutation = useMutation({
@@ -611,6 +651,38 @@ function ActiveRideCard({ ride, onCancel, cancelling }: { ride: any; onCancel: (
             </div>
           </div>
         </div>
+
+        {/* Rider ETA & Distance */}
+        {riderEta && ride.status !== "requested" && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="mt-4 flex gap-2"
+          >
+            <div className="flex flex-1 items-center gap-2 rounded-xl bg-info/10 border border-info/20 px-3 py-2.5">
+              <Navigation className="h-4 w-4 text-info" />
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-info/70">Distance</p>
+                <p className="text-sm font-bold text-info">
+                  {riderEta.distanceKm < 1
+                    ? `${Math.round(riderEta.distanceKm * 1000)}m`
+                    : `${riderEta.distanceKm.toFixed(1)} km`}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-1 items-center gap-2 rounded-xl bg-primary/10 border border-primary/20 px-3 py-2.5">
+              <Clock className="h-4 w-4 text-primary" />
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-primary/70">
+                  {ride.status === "picked_up" ? "Arriving in" : "ETA"}
+                </p>
+                <p className="text-sm font-bold text-primary">
+                  {riderEta.durationMin <= 1 ? "< 1 min" : `${riderEta.durationMin} min`}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {ride.fare && (
           <div className="mt-4 flex items-center justify-between rounded-xl bg-secondary/50 px-4 py-3">
