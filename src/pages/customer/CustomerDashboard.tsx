@@ -14,6 +14,7 @@ import RideRatingDialog from "@/components/RideRatingDialog";
 import { useToast } from "@/hooks/use-toast";
 import { calculateFare } from "@/lib/fareCalculation";
 import { useActiveZones, type Zone } from "@/hooks/useZones";
+import { useRiderLocationRealtime } from "@/hooks/useRiderLocationRealtime";
 
 type RideStatus = "requested" | "accepted" | "en_route" | "picked_up" | "completed" | "cancelled";
 
