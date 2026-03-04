@@ -141,6 +141,9 @@ function BookRideSection() {
   const [mapboxToken, setMapboxToken] = useState<string | null>(null);
   const { data: zones } = useActiveZones();
   const [matchedZone, setMatchedZone] = useState<Zone | null>(null);
+  const [suggestions, setSuggestions] = useState<Array<{ place_name: string; center: [number, number] }>>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Fetch mapbox token for geocoding
   useEffect(() => {
@@ -153,6 +156,38 @@ function BookRideSection() {
   }, []);
 
   const [pickupMode, setPickupMode] = useState<"gps" | "manual">("gps");
+
+  const fetchSuggestions = useCallback(async (query: string) => {
+    if (!mapboxToken || query.length < 3) { setSuggestions([]); return; }
+    try {
+      const res = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${mapboxToken}&limit=5&types=address,poi,place,locality&country=PH&bbox=122.4,9.4,125.1,12.7`
+      );
+      const data = await res.json();
+      setSuggestions(data.features?.map((f: any) => ({ place_name: f.place_name, center: f.center })) || []);
+    } catch { setSuggestions([]); }
+  }, [mapboxToken]);
+
+  const handleDropoffChange = useCallback((value: string) => {
+    setDropoffInput(value);
+    setDropoff(value);
+    setDropoffCoords(null);
+    setShowSuggestions(true);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => fetchSuggestions(value), 300);
+  }, [setDropoffInput, setDropoff, fetchSuggestions]);
+
+  const selectSuggestion = useCallback((s: { place_name: string; center: [number, number] }) => {
+    setDropoffInput(s.place_name);
+    setDropoff(s.place_name);
+    setDropoffCoords([s.center[0], s.center[1]]);
+    setSuggestions([]);
+    setShowSuggestions(false);
+  }, [setDropoffInput, setDropoff]);
+
+  const onTogglePickupMode = useCallback(() => {
+    setPickupMode(prev => prev === "gps" ? "manual" : "gps");
+  }, []);
 
   // GPS auto-detect pickup location
   const handleGeolocate = useCallback(async (lng: number, lat: number) => {
