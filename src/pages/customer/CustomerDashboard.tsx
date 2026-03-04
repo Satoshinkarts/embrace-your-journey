@@ -565,6 +565,55 @@ function BookRideSection() {
         </AnimatePresence>
       </div>
 
+      {/* Recent & Frequent destinations — show when no active ride and no dropoff set */}
+      {!activeRide && !dropoffCoords && (recentAndFrequent.recent.length > 0 || recentAndFrequent.frequent.length > 0) && (
+        <div className="shrink-0 z-20 px-4 pb-1 max-h-36 overflow-y-auto">
+          {recentAndFrequent.frequent.length > 0 && (
+            <div className="mb-1.5">
+              <p className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">
+                <TrendingUp className="h-3 w-3" /> Frequent
+              </p>
+              {recentAndFrequent.frequent.map((r, i) => (
+                <button
+                  key={`freq-${i}`}
+                  onClick={() => handleRebook(r.dropoff_address, r.dropoff_lat!, r.dropoff_lng!)}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left transition-colors hover:bg-secondary mb-1"
+                >
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                    <TrendingUp className="h-3.5 w-3.5 text-primary" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-medium text-foreground">{r.dropoff_address}</p>
+                    <p className="text-[10px] text-muted-foreground">{(r as any).count} rides</p>
+                  </div>
+                  <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                </button>
+              ))}
+            </div>
+          )}
+          {recentAndFrequent.recent.length > 0 && (
+            <div>
+              <p className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">
+                <RotateCcw className="h-3 w-3" /> Recent
+              </p>
+              {recentAndFrequent.recent.map((r, i) => (
+                <button
+                  key={`rec-${i}`}
+                  onClick={() => handleRebook(r.dropoff_address, r.dropoff_lat!, r.dropoff_lng!)}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left transition-colors hover:bg-secondary mb-1"
+                >
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-warning/10">
+                    <RotateCcw className="h-3.5 w-3.5 text-warning" />
+                  </div>
+                  <p className="truncate text-xs font-medium text-foreground min-w-0 flex-1">{r.dropoff_address}</p>
+                  <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Map in the middle — shrinks to fit so bottom panel always shows */}
       <div className="relative flex-1 min-h-0">
         <MapboxMap
