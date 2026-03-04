@@ -360,7 +360,7 @@ function ActiveTripCard({ ride, advanceMutation, routeInfo }: { ride: any; advan
 
         {nextStep && (
           <Button
-            className="h-12 w-full rounded-xl text-sm font-semibold"
+            className="h-12 w-full text-sm font-semibold"
             onClick={() => advanceMutation.mutate({ rideId: ride.id, newStatus: nextStep.to })}
             disabled={advanceMutation.isPending}
           >
