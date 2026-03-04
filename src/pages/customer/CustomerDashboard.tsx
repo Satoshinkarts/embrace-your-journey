@@ -501,8 +501,8 @@ function BookRideSection() {
         </AnimatePresence>
       </div>
 
-      {/* Map in the middle */}
-      <div className="relative flex-1 min-h-[200px]">
+      {/* Map in the middle — shrinks to fit so bottom panel always shows */}
+      <div className="relative flex-1 min-h-0">
         <MapboxMap
           className="h-full w-full"
           onMapClick={!activeRide ? handleMapClick : undefined}
