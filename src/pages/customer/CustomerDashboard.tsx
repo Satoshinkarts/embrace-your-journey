@@ -913,7 +913,7 @@ function BottomBookingPanel({
 
       {/* Order button */}
       <Button
-        className="h-14 w-full rounded-2xl text-base font-bold shadow-lg"
+        className="h-14 w-full text-base font-bold shadow-lg"
         onClick={onBook}
         disabled={!canBook || booking}
       >
