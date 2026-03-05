@@ -148,7 +148,7 @@ function RatingsSection() {
 async function reverseGeocode(lng: number, lat: number, token: string): Promise<string> {
   try {
     const res = await fetch(
-      `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${token}&limit=1&types=address,poi`
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${token}&limit=1&types=address,poi,place,locality,neighborhood&language=en&country=PH`
     );
     const data = await res.json();
     if (data.features?.length) {
