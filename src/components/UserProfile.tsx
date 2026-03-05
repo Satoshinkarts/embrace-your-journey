@@ -46,6 +46,7 @@ export function UserProfileSheet({ open, onOpenChange }: { open: boolean; onOpen
   const { data: profile, isLoading } = useUserProfile();
   const primaryRole = roles[0] || "customer";
   const canManageShoutouts = roles.includes("operator") || roles.includes("admin");
+  const isCustomer = roles.includes("customer") && !roles.includes("operator") && !roles.includes("admin");
   const [view, setView] = useState<"profile" | "edit" | "shoutouts">("profile");
 
   const handleBack = () => setView("profile");
