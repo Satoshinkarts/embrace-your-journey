@@ -335,26 +335,28 @@ function ProfileContent({ profile, primaryRole, onEditProfile, onOpenShoutouts }
       {/* Role-specific stats */}
       <RoleStats profile={profile} primaryRole={primaryRole} />
 
-      {/* Shoutouts shortcut */}
-      <motion.button
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        onClick={onOpenShoutouts}
-        className="glass-card w-full p-4 flex items-center gap-3 text-left hover:bg-secondary/50 transition-colors"
-      >
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-          <Megaphone className="h-5 w-5 text-primary" />
-        </div>
-        <div className="flex-1">
-          <p className="text-sm font-medium text-foreground">Shoutouts</p>
-          <p className="text-[10px] text-muted-foreground">
-            {profile.roles.includes("operator") || profile.roles.includes("admin")
-              ? "Create & manage shoutouts"
-              : "View your shoutouts"}
-          </p>
-        </div>
-        <ChevronLeft className="h-4 w-4 text-muted-foreground rotate-180" />
-      </motion.button>
+      {/* Shoutouts shortcut (hidden for customers) */}
+      {onOpenShoutouts && (
+        <motion.button
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          onClick={onOpenShoutouts}
+          className="glass-card w-full p-4 flex items-center gap-3 text-left hover:bg-secondary/50 transition-colors"
+        >
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+            <Megaphone className="h-5 w-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-foreground">Shoutouts</p>
+            <p className="text-[10px] text-muted-foreground">
+              {profile.roles.includes("operator") || profile.roles.includes("admin")
+                ? "Create & manage shoutouts"
+                : "View your shoutouts"}
+            </p>
+          </div>
+          <ChevronLeft className="h-4 w-4 text-muted-foreground rotate-180" />
+        </motion.button>
+      )}
     </div>
   );
 }
