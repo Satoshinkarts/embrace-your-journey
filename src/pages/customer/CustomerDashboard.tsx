@@ -596,14 +596,18 @@ function BookRideSection() {
                       exit={{ opacity: 0, y: -4 }}
                       className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-xl border border-border bg-card shadow-xl"
                     >
-                      {suggestions.map((s, i) => (
+                      {suggestions.map((s: any, i) => (
                         <button
                           key={i}
                           onMouseDown={(e) => e.preventDefault()}
                           onClick={() => selectSuggestion(s)}
                           className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-secondary border-b border-border last:border-0"
                         >
-                          <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
+                          {s.isLandmark ? (
+                            <Star className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                          ) : (
+                            <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
+                          )}
                           <span className="text-sm text-foreground line-clamp-2">{s.place_name}</span>
                         </button>
                       ))}
