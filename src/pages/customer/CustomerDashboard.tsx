@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { calculateFare } from "@/lib/fareCalculation";
 import { useActiveZones, type Zone } from "@/hooks/useZones";
 import { useRiderLocationRealtime } from "@/hooks/useRiderLocationRealtime";
+import { searchLandmarks } from "@/data/panayLandmarks";
 
 type RideStatus = "requested" | "accepted" | "en_route" | "picked_up" | "completed" | "cancelled";
 
@@ -188,13 +189,34 @@ function BookRideSection() {
   const [pickupMode, setPickupMode] = useState<"gps" | "manual">("gps");
 
   const fetchSuggestions = useCallback(async (query: string) => {
-    if (!mapboxToken || query.length < 3) { setSuggestions([]); return; }
+    if (!mapboxToken || query.length < 2) { setSuggestions([]); return; }
     try {
+      // Local landmark matches (instant, prioritized)
+      const localMatches = searchLandmarks(query, 4).map((lm) => ({
+        place_name: lm.name,
+        center: [lm.lng, lm.lat] as [number, number],
+        isLandmark: true,
+      }));
+
+      // Mapbox geocoding (remote)
       const res = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${mapboxToken}&limit=8&types=address,poi,place,locality,neighborhood,district&country=PH&bbox=121.8,10.4,123.2,12.0&proximity=122.5654,10.7202&language=en`
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${mapboxToken}&limit=6&types=address,poi,place,locality,neighborhood,district&country=PH&bbox=121.8,10.4,123.2,12.0&proximity=122.5654,10.7202&language=en`
       );
       const data = await res.json();
-      setSuggestions(data.features?.map((f: any) => ({ place_name: f.place_name, center: f.center })) || []);
+      const mapboxResults = (data.features || []).map((f: any) => ({
+        place_name: f.place_name,
+        center: f.center,
+        isLandmark: false,
+      }));
+
+      // Deduplicate: remove Mapbox results that closely match a local landmark name
+      const localNames = new Set(localMatches.map((l) => l.place_name.toLowerCase()));
+      const filtered = mapboxResults.filter(
+        (r: any) => !localNames.has(r.place_name.split(",")[0].trim().toLowerCase())
+      );
+
+      // Blend: local landmarks first, then Mapbox results, max 8
+      setSuggestions([...localMatches, ...filtered].slice(0, 8));
     } catch { setSuggestions([]); }
   }, [mapboxToken]);
 
@@ -574,14 +596,18 @@ function BookRideSection() {
                       exit={{ opacity: 0, y: -4 }}
                       className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-xl border border-border bg-card shadow-xl"
                     >
-                      {suggestions.map((s, i) => (
+                      {suggestions.map((s: any, i) => (
                         <button
                           key={i}
                           onMouseDown={(e) => e.preventDefault()}
                           onClick={() => selectSuggestion(s)}
                           className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-secondary border-b border-border last:border-0"
                         >
-                          <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
+                          {s.isLandmark ? (
+                            <Star className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                          ) : (
+                            <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
+                          )}
                           <span className="text-sm text-foreground line-clamp-2">{s.place_name}</span>
                         </button>
                       ))}
