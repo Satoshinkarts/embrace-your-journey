@@ -267,7 +267,7 @@ function ProfileContent({ profile, primaryRole, onEditProfile, onOpenShoutouts }
   profile: UserProfileData;
   primaryRole: string;
   onEditProfile: () => void;
-  onOpenShoutouts: () => void;
+  onOpenShoutouts?: () => void;
 }) {
   const memberSince = new Date(profile.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
