@@ -84,7 +84,7 @@ export function UserProfileSheet({ open, onOpenChange }: { open: boolean; onOpen
             <motion.div key="edit" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 40 }} transition={{ duration: 0.2 }} className="flex-1 overflow-y-auto px-5 py-4">
               {profile && <EditProfileView profile={profile} onDone={handleBack} />}
             </motion.div>
-          ) : view === "shoutouts" ? (
+          ) : view === "shoutouts" && !isCustomer ? (
             <motion.div key="shoutouts" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 40 }} transition={{ duration: 0.2 }} className="flex-1 overflow-y-auto px-5 py-4">
               <ShoutoutsView canManage={canManageShoutouts} />
             </motion.div>
