@@ -46,6 +46,7 @@ export function UserProfileSheet({ open, onOpenChange }: { open: boolean; onOpen
   const { data: profile, isLoading } = useUserProfile();
   const primaryRole = roles[0] || "customer";
   const canManageShoutouts = roles.includes("operator") || roles.includes("admin");
+  const isCustomer = roles.includes("customer") && !roles.includes("operator") && !roles.includes("admin");
   const [view, setView] = useState<"profile" | "edit" | "shoutouts">("profile");
 
   const handleBack = () => setView("profile");
@@ -75,6 +76,7 @@ export function UserProfileSheet({ open, onOpenChange }: { open: boolean; onOpen
           <SheetDescription className="text-xs text-muted-foreground">
             {view === "edit" ? "Customize your profile" : view === "shoutouts" ? (canManageShoutouts ? "Create & manage" : "Your shoutouts") : "Your account"}
           </SheetDescription>
+
         </SheetHeader>
 
         <AnimatePresence mode="wait">
@@ -82,7 +84,7 @@ export function UserProfileSheet({ open, onOpenChange }: { open: boolean; onOpen
             <motion.div key="edit" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 40 }} transition={{ duration: 0.2 }} className="flex-1 overflow-y-auto px-5 py-4">
               {profile && <EditProfileView profile={profile} onDone={handleBack} />}
             </motion.div>
-          ) : view === "shoutouts" ? (
+          ) : view === "shoutouts" && !isCustomer ? (
             <motion.div key="shoutouts" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 40 }} transition={{ duration: 0.2 }} className="flex-1 overflow-y-auto px-5 py-4">
               <ShoutoutsView canManage={canManageShoutouts} />
             </motion.div>
@@ -98,7 +100,7 @@ export function UserProfileSheet({ open, onOpenChange }: { open: boolean; onOpen
                   profile={profile}
                   primaryRole={primaryRole}
                   onEditProfile={() => setView("edit")}
-                  onOpenShoutouts={() => setView("shoutouts")}
+                  onOpenShoutouts={isCustomer ? undefined : () => setView("shoutouts")}
                 />
               ) : (
                 <div className="glass-card p-8 text-center">
@@ -265,7 +267,7 @@ function ProfileContent({ profile, primaryRole, onEditProfile, onOpenShoutouts }
   profile: UserProfileData;
   primaryRole: string;
   onEditProfile: () => void;
-  onOpenShoutouts: () => void;
+  onOpenShoutouts?: () => void;
 }) {
   const memberSince = new Date(profile.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
@@ -333,26 +335,28 @@ function ProfileContent({ profile, primaryRole, onEditProfile, onOpenShoutouts }
       {/* Role-specific stats */}
       <RoleStats profile={profile} primaryRole={primaryRole} />
 
-      {/* Shoutouts shortcut */}
-      <motion.button
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        onClick={onOpenShoutouts}
-        className="glass-card w-full p-4 flex items-center gap-3 text-left hover:bg-secondary/50 transition-colors"
-      >
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-          <Megaphone className="h-5 w-5 text-primary" />
-        </div>
-        <div className="flex-1">
-          <p className="text-sm font-medium text-foreground">Shoutouts</p>
-          <p className="text-[10px] text-muted-foreground">
-            {profile.roles.includes("operator") || profile.roles.includes("admin")
-              ? "Create & manage shoutouts"
-              : "View your shoutouts"}
-          </p>
-        </div>
-        <ChevronLeft className="h-4 w-4 text-muted-foreground rotate-180" />
-      </motion.button>
+      {/* Shoutouts shortcut (hidden for customers) */}
+      {onOpenShoutouts && (
+        <motion.button
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          onClick={onOpenShoutouts}
+          className="glass-card w-full p-4 flex items-center gap-3 text-left hover:bg-secondary/50 transition-colors"
+        >
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+            <Megaphone className="h-5 w-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-foreground">Shoutouts</p>
+            <p className="text-[10px] text-muted-foreground">
+              {profile.roles.includes("operator") || profile.roles.includes("admin")
+                ? "Create & manage shoutouts"
+                : "View your shoutouts"}
+            </p>
+          </div>
+          <ChevronLeft className="h-4 w-4 text-muted-foreground rotate-180" />
+        </motion.button>
+      )}
     </div>
   );
 }

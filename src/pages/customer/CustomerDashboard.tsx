@@ -148,7 +148,7 @@ function RatingsSection() {
 async function reverseGeocode(lng: number, lat: number, token: string): Promise<string> {
   try {
     const res = await fetch(
-      `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${token}&limit=1&types=address,poi`
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${token}&limit=1&types=address,poi,place,locality,neighborhood&language=en&country=PH`
     );
     const data = await res.json();
     if (data.features?.length) {
@@ -191,7 +191,7 @@ function BookRideSection() {
     if (!mapboxToken || query.length < 3) { setSuggestions([]); return; }
     try {
       const res = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${mapboxToken}&limit=5&types=address,poi,place,locality&country=PH&bbox=122.4,9.4,125.1,12.7`
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${mapboxToken}&limit=8&types=address,poi,place,locality,neighborhood,district&country=PH&bbox=121.8,10.4,123.2,12.0&proximity=122.5654,10.7202&language=en`
       );
       const data = await res.json();
       setSuggestions(data.features?.map((f: any) => ({ place_name: f.place_name, center: f.center })) || []);
