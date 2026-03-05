@@ -76,6 +76,7 @@ export function UserProfileSheet({ open, onOpenChange }: { open: boolean; onOpen
           <SheetDescription className="text-xs text-muted-foreground">
             {view === "edit" ? "Customize your profile" : view === "shoutouts" ? (canManageShoutouts ? "Create & manage" : "Your shoutouts") : "Your account"}
           </SheetDescription>
+
         </SheetHeader>
 
         <AnimatePresence mode="wait">

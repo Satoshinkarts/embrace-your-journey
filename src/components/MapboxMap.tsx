@@ -44,7 +44,7 @@ export default function MapboxMap({
     mapboxgl.accessToken = token;
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: "mapbox://styles/mapbox/light-v11",
+      style: "mapbox://styles/mapbox/streets-v12",
       center,
       zoom,
       interactive,
