@@ -60,6 +60,39 @@ export default function MapboxMap({
       "top-right"
     );
 
+    // Boost POI / landmark label visibility once style loads
+    map.current.on("style.load", () => {
+      const m = map.current;
+      if (!m) return;
+      const style = m.getStyle();
+      if (!style?.layers) return;
+
+      style.layers.forEach((layer) => {
+        // Boost POI labels
+        if (layer.id.includes("poi-label") || layer.id.includes("transit-label")) {
+          try {
+            m.setLayoutProperty(layer.id, "text-size", [
+              "interpolate", ["linear"], ["zoom"],
+              12, 11, 14, 13, 16, 15,
+            ]);
+            m.setLayoutProperty(layer.id, "icon-size", [
+              "interpolate", ["linear"], ["zoom"],
+              12, 0.9, 16, 1.2,
+            ]);
+            m.setPaintProperty(layer.id, "text-halo-width", 1.5);
+            m.setPaintProperty(layer.id, "text-halo-color", "rgba(255,255,255,0.9)");
+          } catch {}
+        }
+        // Boost place / settlement labels
+        if (layer.id.includes("place-label") || layer.id.includes("settlement")) {
+          try {
+            m.setPaintProperty(layer.id, "text-halo-width", 2);
+            m.setPaintProperty(layer.id, "text-halo-color", "rgba(255,255,255,0.95)");
+          } catch {}
+        }
+      });
+    });
+
     if (showGeolocate && onGeolocate) {
       const geoCtrl = new mapboxgl.GeolocateControl({
         positionOptions: { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },

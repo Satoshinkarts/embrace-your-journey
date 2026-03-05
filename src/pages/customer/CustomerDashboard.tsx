@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { calculateFare } from "@/lib/fareCalculation";
 import { useActiveZones, type Zone } from "@/hooks/useZones";
 import { useRiderLocationRealtime } from "@/hooks/useRiderLocationRealtime";
+import { searchLandmarks } from "@/data/panayLandmarks";
 
 type RideStatus = "requested" | "accepted" | "en_route" | "picked_up" | "completed" | "cancelled";
 
