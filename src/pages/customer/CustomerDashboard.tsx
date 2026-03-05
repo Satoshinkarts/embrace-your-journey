@@ -595,7 +595,7 @@ function BookRideSection() {
       </div>
 
       {/* Recent & Frequent destinations — show when no active ride and no dropoff set */}
-      {!activeRide && !dropoffCoords && (recentAndFrequent.recent.length > 0 || recentAndFrequent.frequent.length > 0) && (
+      {!activeRide && !dropoffCoords && !showSuggestions && (recentAndFrequent.recent.length > 0 || recentAndFrequent.frequent.length > 0) && (
         <div className="shrink-0 z-20 px-4 pb-1 max-h-36 overflow-y-auto">
           {recentAndFrequent.frequent.length > 0 && (
             <div className="mb-1.5">
