@@ -100,7 +100,7 @@ export function UserProfileSheet({ open, onOpenChange }: { open: boolean; onOpen
                   profile={profile}
                   primaryRole={primaryRole}
                   onEditProfile={() => setView("edit")}
-                  onOpenShoutouts={() => setView("shoutouts")}
+                  onOpenShoutouts={isCustomer ? undefined : () => setView("shoutouts")}
                 />
               ) : (
                 <div className="glass-card p-8 text-center">
