@@ -62,7 +62,7 @@ export function SplashScreen({ onFinish }: { onFinish: () => void }) {
             className="relative z-10 mt-6 text-center"
           >
             <h1 className="text-2xl font-bold tracking-tight text-foreground">Habal</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Iloilo Verified Rider Network</p>
+            <p className="mt-1 text-sm text-muted-foreground">One Tap Away</p>
           </motion.div>
 
           {/* Loading dots */}

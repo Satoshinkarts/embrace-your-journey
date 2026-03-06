@@ -50,8 +50,8 @@ export default function MapboxMap({
       interactive,
       attributionControl: false,
       maxBounds: [
-        [121.8, 10.4],  // Southwest corner of Panay Island
-        [123.2, 12.0],  // Northeast corner of Panay Island
+        [121.8, 10.4],
+        [123.2, 12.0],
       ],
     });
 
@@ -68,7 +68,6 @@ export default function MapboxMap({
       if (!style?.layers) return;
 
       style.layers.forEach((layer) => {
-        // Boost POI labels
         if (layer.id.includes("poi-label") || layer.id.includes("transit-label")) {
           try {
             m.setLayoutProperty(layer.id, "text-size", [
@@ -83,7 +82,6 @@ export default function MapboxMap({
             m.setPaintProperty(layer.id, "text-halo-color", "rgba(255,255,255,0.9)");
           } catch {}
         }
-        // Boost place / settlement labels
         if (layer.id.includes("place-label") || layer.id.includes("settlement")) {
           try {
             m.setPaintProperty(layer.id, "text-halo-width", 2);
@@ -109,7 +107,6 @@ export default function MapboxMap({
         }
       });
 
-      // Auto-trigger GPS geolocation after map loads
       map.current.on("load", () => {
         geoCtrl.trigger();
       });
@@ -139,9 +136,9 @@ export default function MapboxMap({
       el.className = "mapbox-custom-marker";
       el.style.cssText = `
         width: 28px; height: 28px; border-radius: 50%;
-        background: ${m.color || "#22c55e"};
+        background: ${m.color || "#3A7FD9"};
         border: 3px solid rgba(255,255,255,0.9);
-        box-shadow: 0 0 12px ${m.color || "#22c55e"}80, 0 2px 8px rgba(0,0,0,0.3);
+        box-shadow: 0 0 12px ${m.color || "#3A7FD9"}80, 0 2px 8px rgba(0,0,0,0.3);
         cursor: pointer;
       `;
 
@@ -152,7 +149,7 @@ export default function MapboxMap({
       if (m.label) {
         marker.setPopup(
           new mapboxgl.Popup({ offset: 20, closeButton: false })
-            .setHTML(`<div style="padding:4px 8px;font-size:12px;font-weight:600;color:#1a1a2e;">${m.label}</div>`)
+            .setHTML(`<div style="padding:4px 8px;font-size:12px;font-weight:600;color:#1A1A1A;">${m.label}</div>`)
         );
       }
 
@@ -160,7 +157,7 @@ export default function MapboxMap({
     });
   }, [markers]);
 
-  // Draw route and auto-fit bounds to show full route + markers
+  // Draw route and auto-fit bounds
   useEffect(() => {
     if (!map.current) return;
 
@@ -169,12 +166,10 @@ export default function MapboxMap({
       const bounds = new mapboxgl.LngLatBounds();
       let hasPoints = false;
 
-      // Include route coordinates
       if (routeCoords?.length) {
         routeCoords.forEach((c) => { bounds.extend(c); hasPoints = true; });
       }
 
-      // Include markers
       markers.forEach((m) => { bounds.extend([m.lng, m.lat]); hasPoints = true; });
 
       if (hasPoints && (markers.length > 1 || (routeCoords?.length ?? 0) > 0)) {
@@ -186,12 +181,10 @@ export default function MapboxMap({
       }
     };
 
-    // Handle route drawing
     const addRoute = () => {
       if (!map.current) return;
 
       if (!routeCoords?.length) {
-        // Remove route if no coords
         if (map.current.getLayer("route")) map.current.removeLayer("route");
         if (map.current.getSource("route")) map.current.removeSource("route");
         fitToView();
@@ -214,7 +207,7 @@ export default function MapboxMap({
           source: "route",
           layout: { "line-join": "round", "line-cap": "round" },
           paint: {
-            "line-color": "#4facfe",
+            "line-color": "#3A7FD9",
             "line-width": 5,
             "line-opacity": 0.85,
           },
