@@ -95,7 +95,7 @@ export default function Auth() {
               ? "Enter your email to receive a reset link"
               : mode === "login"
               ? "Sign in to continue"
-              : "Join the Iloilo Verified Rider Network"}
+              : "Join the Habal network"}
           </p>
         </div>
 
