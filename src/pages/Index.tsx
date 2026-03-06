@@ -1,11 +1,11 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import habalLogo from "@/assets/habal-logo.png";
-import { Bike, Shield, MapPin, ChevronRight } from "lucide-react";
+import { Bike, Shield, MapPin, ChevronRight, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const features = [
-  { icon: MapPin, title: "GPS-Powered Booking", description: "Precise pickup with high-accuracy GPS" },
+  { icon: Zap, title: "Fast Booking", description: "Book a nearby rider in seconds" },
   { icon: Bike, title: "Verified Riders", description: "Every rider is verified and tracked" },
   { icon: Shield, title: "Safe & Transparent", description: "Real-time tracking, fare estimates, ratings" },
 ];
@@ -18,8 +18,8 @@ export default function Index() {
       {/* Ambient glow */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute left-1/2 top-1/3 -translate-x-1/2 h-[500px] w-[500px] rounded-full bg-primary/8 blur-[150px]" />
-        <div className="absolute right-0 top-0 h-72 w-72 rounded-full bg-info/6 blur-[120px]" />
-        <div className="absolute bottom-0 left-0 h-72 w-72 rounded-full bg-accent/6 blur-[120px]" />
+        <div className="absolute right-0 top-0 h-72 w-72 rounded-full bg-accent/6 blur-[120px]" />
+        <div className="absolute bottom-0 left-0 h-72 w-72 rounded-full bg-primary/4 blur-[120px]" />
       </div>
 
       {/* Logo & branding */}
@@ -35,7 +35,7 @@ export default function Index() {
           <img src={habalLogo} alt="Habal Logo" className="relative h-24 w-24 object-contain drop-shadow-2xl" />
         </div>
         <h1 className="text-2xl font-bold tracking-tight text-foreground">Habal</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Iloilo Verified Rider Network</p>
+        <p className="mt-1 text-sm font-medium text-primary">One Tap Away</p>
       </motion.div>
 
       {/* Features */}
@@ -48,10 +48,10 @@ export default function Index() {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 + i * 0.08, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              className="flex items-center gap-4 rounded-2xl border border-border/60 bg-gradient-to-r from-primary/10 to-primary/5 p-4"
+              className="flex items-center gap-4 rounded-2xl border border-border/60 bg-gradient-to-r from-primary/8 to-primary/3 p-4"
             >
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-background/50 backdrop-blur-sm">
-                <Icon className="h-5 w-5 text-foreground" />
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                <Icon className="h-5 w-5 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-foreground">{feature.title}</p>
@@ -91,7 +91,7 @@ export default function Index() {
         transition={{ delay: 0.6 }}
         className="mt-8 text-center text-xs text-muted-foreground"
       >
-        Safe rides across Iloilo City
+        Fast, reliable motorcycle rides
       </motion.p>
     </div>
   );

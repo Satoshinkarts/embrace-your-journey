@@ -266,13 +266,13 @@ function ActiveRideOrAvailable() {
 
   // Build markers
   const markers = [
-    ...(riderPos ? [{ id: "rider-self", lng: riderPos[0], lat: riderPos[1], color: "#3b82f6", label: "You 🏍️" }] : []),
+    ...(riderPos ? [{ id: "rider-self", lng: riderPos[0], lat: riderPos[1], color: "#3A7FD9", label: "You 🏍️" }] : []),
     ...(activeRide?.pickup_lat && activeRide?.pickup_lng
-      ? [{ id: "pickup", lng: activeRide.pickup_lng, lat: activeRide.pickup_lat, color: "#22c55e", label: "Pickup" }] : []),
+      ? [{ id: "pickup", lng: activeRide.pickup_lng, lat: activeRide.pickup_lat, color: "#6FA8FF", label: "Pickup" }] : []),
     ...(activeRide?.dropoff_lat && activeRide?.dropoff_lng
-      ? [{ id: "dropoff", lng: activeRide.dropoff_lng, lat: activeRide.dropoff_lat, color: "#f59e0b", label: "Dropoff" }] : []),
+      ? [{ id: "dropoff", lng: activeRide.dropoff_lng, lat: activeRide.dropoff_lat, color: "#2E63B8", label: "Dropoff" }] : []),
     ...((!activeRide && availableRides) ? availableRides.filter(r => r.pickup_lat && r.pickup_lng).map(r => ({
-      id: r.id, lng: r.pickup_lng!, lat: r.pickup_lat!, color: "#4facfe", label: r.pickup_address,
+      id: r.id, lng: r.pickup_lng!, lat: r.pickup_lat!, color: "#6FA8FF", label: r.pickup_address,
     })) : []),
   ];
 

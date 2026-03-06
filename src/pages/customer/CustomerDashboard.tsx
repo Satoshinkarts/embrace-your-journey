@@ -436,17 +436,16 @@ function BookRideSection() {
   const riderLocation = useRiderLocationRealtime(activeRide?.rider_id);
 
   const markers = [
-    ...(pickupCoords ? [{ id: "pickup", lng: pickupCoords[0], lat: pickupCoords[1], color: "#22c55e", label: "You are here" }] : []),
-    ...(dropoffCoords ? [{ id: "dropoff", lng: dropoffCoords[0], lat: dropoffCoords[1], color: "#f59e0b", label: "Dropoff" }] : []),
+    ...(pickupCoords ? [{ id: "pickup", lng: pickupCoords[0], lat: pickupCoords[1], color: "#3A7FD9", label: "You are here" }] : []),
+    ...(dropoffCoords ? [{ id: "dropoff", lng: dropoffCoords[0], lat: dropoffCoords[1], color: "#2E63B8", label: "Dropoff" }] : []),
     ...(activeRide?.pickup_lat && activeRide?.pickup_lng
-      ? [{ id: "active-pickup", lng: activeRide.pickup_lng, lat: activeRide.pickup_lat, color: "#22c55e", label: "Pickup" }]
+      ? [{ id: "active-pickup", lng: activeRide.pickup_lng, lat: activeRide.pickup_lat, color: "#3A7FD9", label: "Pickup" }]
       : []),
     ...(activeRide?.dropoff_lat && activeRide?.dropoff_lng
-      ? [{ id: "active-dropoff", lng: activeRide.dropoff_lng, lat: activeRide.dropoff_lat, color: "#f59e0b", label: "Dropoff" }]
+      ? [{ id: "active-dropoff", lng: activeRide.dropoff_lng, lat: activeRide.dropoff_lat, color: "#2E63B8", label: "Dropoff" }]
       : []),
-    // Rider's live location marker
     ...(activeRide && riderLocation
-      ? [{ id: "rider-live", lng: riderLocation.lng ?? 0, lat: riderLocation.lat ?? 0, color: "#3b82f6", label: "Your Rider 🏍️" }]
+      ? [{ id: "rider-live", lng: riderLocation.lng ?? 0, lat: riderLocation.lat ?? 0, color: "#6FA8FF", label: "Your Rider 🏍️" }]
       : []),
   ];
 

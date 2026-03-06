@@ -14,15 +14,16 @@ type NavItem = { label: string; icon: React.ElementType; path: string };
 
 const roleNavItems: Record<string, NavItem[]> = {
   customer: [
-    { label: "Book", icon: MapPin, path: "/dashboard" },
-    { label: "Rides", icon: Clock, path: "/dashboard/rides" },
+    { label: "Home", icon: Home, path: "/dashboard" },
+    { label: "Activity", icon: Clock, path: "/dashboard/rides" },
     { label: "Wallet", icon: Wallet, path: "/dashboard/wallet" },
-    { label: "Ratings", icon: Star, path: "/dashboard/ratings" },
+    { label: "Profile", icon: User, path: "/dashboard/ratings" },
   ],
   rider: [
-    { label: "Rides", icon: MapPin, path: "/dashboard" },
+    { label: "Home", icon: Home, path: "/dashboard" },
     { label: "Trips", icon: Clock, path: "/dashboard/trips" },
     { label: "Earnings", icon: DollarSign, path: "/dashboard/earnings" },
+    { label: "Profile", icon: User, path: "/dashboard/ratings" },
   ],
   dispatcher: [
     { label: "Monitor", icon: Navigation, path: "/dashboard" },
@@ -49,7 +50,7 @@ const roleNavItems: Record<string, NavItem[]> = {
 
 interface DashboardLayoutProps {
   children: ReactNode;
-  fullScreen?: boolean; // For map-centric views
+  fullScreen?: boolean;
 }
 
 export default function DashboardLayout({ children, fullScreen = false }: DashboardLayoutProps) {
@@ -79,7 +80,7 @@ export default function DashboardLayout({ children, fullScreen = false }: Dashbo
         <div className="flex items-center gap-2">
           <button
             onClick={() => setProfileOpen(true)}
-            className="flex items-center justify-center rounded-full bg-secondary h-8 w-8 text-muted-foreground transition-colors active:bg-muted"
+            className="flex items-center justify-center rounded-full bg-primary/10 h-8 w-8 text-primary transition-colors active:bg-primary/20"
             aria-label="My Profile"
           >
             <User className="h-4 w-4" />

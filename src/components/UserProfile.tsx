@@ -27,7 +27,7 @@ const roleIcons: Record<string, React.ElementType> = {
 };
 
 const roleBadgeColors: Record<string, string> = {
-  customer: "bg-info/10 text-info border-info/30",
+  customer: "bg-primary/10 text-primary border-primary/30",
   rider: "bg-primary/10 text-primary border-primary/30",
   dispatcher: "bg-warning/10 text-warning border-warning/30",
   operator: "bg-accent/10 text-accent border-accent/30",
