@@ -64,6 +64,11 @@ export default {
           DEFAULT: "hsl(var(--glass))",
           border: "hsl(var(--glass-border))",
         },
+        habal: {
+          DEFAULT: "hsl(214 65% 54%)",
+          deep: "hsl(217 60% 45%)",
+          light: "hsl(216 100% 72%)",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

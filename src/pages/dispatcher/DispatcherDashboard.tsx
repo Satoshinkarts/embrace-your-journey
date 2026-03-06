@@ -48,7 +48,7 @@ function MonitorView() {
     id: r.id,
     lng: r.pickup_lng!,
     lat: r.pickup_lat!,
-    color: r.status === "requested" ? "#f59e0b" : "#4facfe",
+    color: r.status === "requested" ? "#6FA8FF" : "#3A7FD9",
     label: `${r.pickup_address} (${r.status})`,
   }));
 
