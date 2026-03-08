@@ -85,7 +85,7 @@ const AppRoutes = () => (
     {/* Customer routes */}
     <Route path="/dashboard/rides" element={<RoleGuard allowedRoles={["customer"]}><CustomerRides /></RoleGuard>} />
     <Route path="/dashboard/wallet" element={<RoleGuard allowedRoles={["customer"]}><CustomerWallet /></RoleGuard>} />
-    <Route path="/dashboard/ratings" element={<RoleGuard allowedRoles={["customer"]}><CustomerRatings /></RoleGuard>} />
+    <Route path="/dashboard/messages" element={<RoleGuard allowedRoles={["customer"]}><CustomerMessages /></RoleGuard>} />
     <Route path="/dashboard/profile" element={<RoleGuard allowedRoles={["customer"]}><CustomerProfile /></RoleGuard>} />
     <Route path="/dashboard/support" element={<RoleGuard allowedRoles={["customer"]}><CustomerSupport /></RoleGuard>} />
 
