@@ -107,6 +107,7 @@ function ProfilePage() {
 
 /* ── Profile Tab ── */
 function ProfileTab({ profile, onSignOut }: { profile: any; onSignOut: () => void }) {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
   const updateProfile = useUpdateProfile();
