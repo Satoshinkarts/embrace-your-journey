@@ -109,6 +109,7 @@ export default function RideChat({ otherUserId, otherUserName, open, onOpenChang
   const getOrCreateDM = useGetOrCreateDM();
   const { data: messages, isLoading } = useDMMessages(dmChannelId || undefined);
   const sendDM = useSendDM();
+  const { isOtherTyping, sendTyping } = useTypingIndicator(dmChannelId, user?.id);
 
   // Get or create DM channel when opened
   useEffect(() => {
