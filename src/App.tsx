@@ -23,6 +23,7 @@ import CustomerSupport from "./pages/customer/CustomerSupport";
 import CustomerMessages from "./pages/customer/CustomerMessages";
 // Rider
 import RiderDashboard, { RiderTrips, RiderEarnings } from "./pages/rider/RiderDashboard";
+import RiderProfile from "./pages/rider/RiderProfile";
 // Dispatcher
 import DispatcherDashboard, { DispatcherAssign, DispatcherStats } from "./pages/dispatcher/DispatcherDashboard";
 // Operator
