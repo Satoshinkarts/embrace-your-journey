@@ -15,6 +15,7 @@ import { RiderRankingChannel } from "@/components/RankingChannel";
 import { useRiderLocationTracker, useRiderDirectives, useUpdateDirective, type DispatchDirective } from "@/hooks/useRiderTracking";
 import { useUnreadDMCount } from "@/hooks/useUnreadDMs";
 import WalletCard from "@/components/WalletCard";
+import { RideChatButton } from "@/components/RideChat";
 
 type RideStatus = "requested" | "accepted" | "en_route" | "picked_up" | "completed" | "cancelled";
 
