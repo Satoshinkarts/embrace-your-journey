@@ -962,6 +962,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      operator_assign_ride: {
+        Args: { _ride_id: string; _rider_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "customer" | "rider" | "dispatcher" | "operator" | "admin"
