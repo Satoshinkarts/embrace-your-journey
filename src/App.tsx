@@ -86,6 +86,7 @@ const AppRoutes = () => (
     <Route path="/dashboard/wallet" element={<RoleGuard allowedRoles={["customer"]}><CustomerWallet /></RoleGuard>} />
     <Route path="/dashboard/ratings" element={<RoleGuard allowedRoles={["customer"]}><CustomerRatings /></RoleGuard>} />
     <Route path="/dashboard/profile" element={<RoleGuard allowedRoles={["customer"]}><CustomerProfile /></RoleGuard>} />
+    <Route path="/dashboard/support" element={<RoleGuard allowedRoles={["customer"]}><CustomerSupport /></RoleGuard>} />
 
     {/* Rider routes */}
     <Route path="/dashboard/trips" element={<RoleGuard allowedRoles={["rider"]}><RiderTrips /></RoleGuard>} />
