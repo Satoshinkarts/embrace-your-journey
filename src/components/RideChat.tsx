@@ -211,10 +211,34 @@ export default function RideChat({ otherUserId, otherUserName, open, onOpenChang
 
         {/* Input */}
         <div className="border-t border-border px-4 py-3">
+          <AnimatePresence>
+            {isOtherTyping && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="flex items-center gap-1.5 pb-2"
+              >
+                <span className="text-[11px] text-muted-foreground italic">
+                  {otherUserName || "User"} is typing
+                </span>
+                <span className="flex gap-0.5">
+                  {[0, 1, 2].map((i) => (
+                    <motion.span
+                      key={i}
+                      className="h-1 w-1 rounded-full bg-muted-foreground/60"
+                      animate={{ opacity: [0.3, 1, 0.3] }}
+                      transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
+                    />
+                  ))}
+                </span>
+              </motion.div>
+            )}
+          </AnimatePresence>
           <div className="flex items-center gap-2">
             <Input
               value={message}
-              onChange={(e) => setMessage(e.target.value)}
+              onChange={(e) => { setMessage(e.target.value); sendTyping(); }}
               onKeyDown={handleKeyDown}
               placeholder="Type a message..."
               className="flex-1 h-10 text-sm rounded-full"
