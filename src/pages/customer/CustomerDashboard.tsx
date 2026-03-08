@@ -793,11 +793,16 @@ function ActiveRideCard({ ride, onCancel, cancelling, riderLocation, mapboxToken
           <Badge className={`${config.color} border text-xs font-medium`}>
             <StatusIcon className="mr-1 h-3 w-3" />{config.label}
           </Badge>
-          {ride.status === "requested" && (
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Loader2 className="h-3 w-3 animate-spin" />Searching...
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            {ride.rider_id && ride.status !== "requested" && (
+              <RideChatButton otherUserId={ride.rider_id} otherUserName={riderProfile?.full_name || "Rider"} />
+            )}
+            {ride.status === "requested" && (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" />Searching...
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Addresses */}
