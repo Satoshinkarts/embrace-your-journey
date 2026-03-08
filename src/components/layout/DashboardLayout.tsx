@@ -80,13 +80,16 @@ export default function DashboardLayout({ children, fullScreen = false }: Dashbo
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => isCustomer ? navigate("/dashboard/profile") : setProfileOpen(true)}
-            className="flex items-center justify-center rounded-full bg-primary/10 h-8 w-8 text-primary transition-colors active:bg-primary/20"
-            aria-label="My Profile"
-          >
-            <User className="h-4 w-4" />
-          </button>
+          {/* Hide profile button for riders - they use the ranking sidebar */}
+          {!isRider && (
+            <button
+              onClick={() => isCustomer ? navigate("/dashboard/profile") : setProfileOpen(true)}
+              className="flex items-center justify-center rounded-full bg-primary/10 h-8 w-8 text-primary transition-colors active:bg-primary/20"
+              aria-label="My Profile"
+            >
+              <User className="h-4 w-4" />
+            </button>
+          )}
           <button
             onClick={handleSignOut}
             className="flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors active:bg-muted"
