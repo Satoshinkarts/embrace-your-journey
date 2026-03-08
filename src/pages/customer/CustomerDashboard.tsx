@@ -13,7 +13,7 @@ import mapboxgl from "mapbox-gl";
 import {
   MapPin, Navigation, Clock, CheckCircle, XCircle, Loader2, X, Star,
   Wallet, Banknote, Bike, Car, Package, RotateCcw, TrendingUp, ChevronRight,
-  Crosshair, ChevronLeft, AlertCircle, RotateCw,
+  Crosshair, ChevronLeft, AlertCircle, RotateCw, WifiOff,
 } from "lucide-react";
 import WalletCard from "@/components/WalletCard";
 import RideRatingDialog from "@/components/RideRatingDialog";
@@ -22,7 +22,6 @@ import { calculateFare } from "@/lib/fareCalculation";
 import { useActiveZones, type Zone } from "@/hooks/useZones";
 import { useRiderLocationRealtime } from "@/hooks/useRiderLocationRealtime";
 import { searchLandmarks } from "@/data/panayLandmarks";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 type RideStatus = "requested" | "accepted" | "en_route" | "picked_up" | "completed" | "cancelled";
 
@@ -88,7 +87,7 @@ function BookRideSection() {
   const [pickup, setPickup] = useState("");
   const [pickupCoords, setPickupCoords] = useState<[number, number] | null>(null);
   const [pickupConfirmed, setPickupConfirmed] = useState(false);
-  const [isLocating, setIsLocating] = useState(true);
+  const [gpsStatus, setGpsStatus] = useState<"detecting" | "success" | "failed" | "idle">("detecting");
 
   const [dropoff, setDropoff] = useState("");
   const [dropoffInput, setDropoffInput] = useState("");
@@ -102,6 +101,7 @@ function BookRideSection() {
   const [suggestions, setSuggestions] = useState<Array<{ place_name: string; center: [number, number]; isLandmark?: boolean }>>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const gpsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Ride type
   const [rideType, setRideType] = useState<"motorcycle" | "car" | "delivery">("motorcycle");
@@ -110,6 +110,7 @@ function BookRideSection() {
 
   // Route
   const [routeCoords, setRouteCoords] = useState<[number, number][] | undefined>(undefined);
+  const [riderRouteCoords, setRiderRouteCoords] = useState<[number, number][] | undefined>(undefined);
   const [routeEstimate, setRouteEstimate] = useState<{ distanceKm: number; durationMin: number; fare: number } | null>(null);
 
   // Rating
@@ -124,6 +125,22 @@ function BookRideSection() {
       } catch {}
     })();
   }, []);
+
+  // GPS timeout – if we don't get a location within 10s, show fallback
+  useEffect(() => {
+    if (gpsStatus !== "detecting") return;
+    gpsTimeoutRef.current = setTimeout(() => {
+      if (gpsStatus === "detecting") {
+        setGpsStatus("failed");
+        toast({
+          title: "GPS unavailable",
+          description: "Move the map to set your pickup location manually.",
+          variant: "destructive",
+        });
+      }
+    }, 12000);
+    return () => { if (gpsTimeoutRef.current) clearTimeout(gpsTimeoutRef.current); };
+  }, [gpsStatus]);
 
   // Active ride
   const { data: activeRide, isLoading: loadingActive } = useQuery({
@@ -179,7 +196,10 @@ function BookRideSection() {
   const handleCenterChange = useCallback(async (lng: number, lat: number) => {
     if (pickupConfirmed || activeRide) return;
     setPickupCoords([lng, lat]);
-    setIsLocating(false);
+    // Only update GPS status on first interaction
+    if (gpsStatus === "detecting" || gpsStatus === "failed") {
+      setGpsStatus("success");
+    }
     if (mapboxToken) {
       const addr = await reverseGeocode(lng, lat, mapboxToken);
       setPickup(addr);
@@ -188,18 +208,23 @@ function BookRideSection() {
         setMatchedZone(found || null);
       }
     }
-  }, [mapboxToken, pickupConfirmed, activeRide, zones]);
+  }, [mapboxToken, pickupConfirmed, activeRide, zones, gpsStatus]);
 
   // GPS auto-detect
   const handleGeolocate = useCallback(async (lng: number, lat: number) => {
     if (pickupConfirmed) return;
     setPickupCoords([lng, lat]);
-    setIsLocating(false);
+    setGpsStatus("success");
+    if (gpsTimeoutRef.current) clearTimeout(gpsTimeoutRef.current);
     if (mapboxToken) {
       const addr = await reverseGeocode(lng, lat, mapboxToken);
       setPickup(addr);
+      if (zones?.length) {
+        const found = zones.find(z => addr.toLowerCase().includes(z.name.toLowerCase()));
+        setMatchedZone(found || null);
+      }
     }
-  }, [mapboxToken, pickupConfirmed]);
+  }, [mapboxToken, pickupConfirmed, zones]);
 
   // Confirm pickup from center pin
   const confirmPickup = useCallback(() => {
@@ -214,6 +239,7 @@ function BookRideSection() {
     setDropoffInput("");
     setDropoffCoords(null);
     setRouteCoords(undefined);
+    setRiderRouteCoords(undefined);
     setRouteEstimate(null);
   }, []);
 
@@ -271,7 +297,7 @@ function BookRideSection() {
     }
   }, [mapboxToken, pickupConfirmed, activeRide]);
 
-  // Route fetching
+  // Route fetching: pickup → destination
   useEffect(() => {
     if (!mapboxToken) return;
     const pCoords = activeRide ? (activeRide.pickup_lat && activeRide.pickup_lng ? [activeRide.pickup_lng, activeRide.pickup_lat] : null) : pickupCoords;
@@ -301,6 +327,36 @@ function BookRideSection() {
 
   // Rider tracking
   const riderLocation = useRiderLocationRealtime(activeRide?.rider_id);
+
+  // Rider → pickup/dropoff route
+  useEffect(() => {
+    if (!mapboxToken || !riderLocation || !activeRide) {
+      setRiderRouteCoords(undefined);
+      return;
+    }
+    
+    const isPickedUp = activeRide.status === "picked_up";
+    const destLat = isPickedUp ? activeRide.dropoff_lat : activeRide.pickup_lat;
+    const destLng = isPickedUp ? activeRide.dropoff_lng : activeRide.pickup_lng;
+    
+    if (!destLat || !destLng) { setRiderRouteCoords(undefined); return; }
+    
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(
+          `https://api.mapbox.com/directions/v5/mapbox/driving/${riderLocation.lng},${riderLocation.lat};${destLng},${destLat}?geometries=geojson&overview=full&access_token=${mapboxToken}`
+        );
+        const data = await res.json();
+        if (!cancelled && data.routes?.[0]) {
+          setRiderRouteCoords(data.routes[0].geometry.coordinates);
+        }
+      } catch {
+        if (!cancelled) setRiderRouteCoords(undefined);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [mapboxToken, riderLocation?.lat, riderLocation?.lng, activeRide?.id, activeRide?.status]);
 
   // Past rides for recent/frequent
   const { data: pastRides } = useQuery({
@@ -360,6 +416,9 @@ function BookRideSection() {
       toast({ title: "Ride requested!", description: "Looking for a rider nearby..." });
       setDropoff(""); setDropoffInput(""); setDropoffCoords(null);
       setPickupConfirmed(false);
+      setRouteCoords(undefined);
+      setRiderRouteCoords(undefined);
+      setRouteEstimate(null);
       queryClient.invalidateQueries({ queryKey: ["active-ride"] });
     },
     onError: (err: any) => {
@@ -378,6 +437,8 @@ function BookRideSection() {
     },
     onSuccess: () => {
       toast({ title: "Ride cancelled" });
+      setRouteCoords(undefined);
+      setRiderRouteCoords(undefined);
       queryClient.invalidateQueries({ queryKey: ["active-ride"] });
     },
     onError: (err: any) => {
@@ -390,14 +451,25 @@ function BookRideSection() {
     ...(dropoffCoords ? [{ id: "dropoff", lng: dropoffCoords[0], lat: dropoffCoords[1], color: "#F59E0B", label: "Destination" }] : []),
     ...(activeRide?.pickup_lat && activeRide?.pickup_lng ? [{ id: "active-pickup", lng: activeRide.pickup_lng, lat: activeRide.pickup_lat, color: "#3A7FD9", label: "Pickup" }] : []),
     ...(activeRide?.dropoff_lat && activeRide?.dropoff_lng ? [{ id: "active-dropoff", lng: activeRide.dropoff_lng, lat: activeRide.dropoff_lat, color: "#F59E0B", label: "Dropoff" }] : []),
-    ...(activeRide && riderLocation ? [{ id: "rider-live", lng: riderLocation.lng ?? 0, lat: riderLocation.lat ?? 0, color: "#6FA8FF", label: "Your Rider 🏍️" }] : []),
+    ...(activeRide && riderLocation ? [{
+      id: "rider-live",
+      lng: riderLocation.lng ?? 0,
+      lat: riderLocation.lat ?? 0,
+      color: "#6FA8FF",
+      label: "Your Rider 🏍️",
+      animate: true,
+      pulse: true,
+    }] : []),
   ], [pickupConfirmed, pickupCoords, dropoffCoords, activeRide, riderLocation]);
 
   const pickupReady = pickupConfirmed && !!pickup.trim();
   const canBook = pickupReady && !!(dropoff.trim() || dropoffInput.trim()) && !!dropoffCoords;
 
   const handleRecenter = useCallback(() => {
-    if (!navigator.geolocation) return;
+    if (!navigator.geolocation) {
+      toast({ title: "GPS not supported", description: "Your device doesn't support location services.", variant: "destructive" });
+      return;
+    }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         mapInstanceRef.current?.flyTo({
@@ -406,10 +478,12 @@ function BookRideSection() {
           duration: 800,
         });
       },
-      () => {},
+      () => {
+        toast({ title: "Location unavailable", description: "Please enable location access in your device settings.", variant: "destructive" });
+      },
       { enableHighAccuracy: true, timeout: 8000 }
     );
-  }, []);
+  }, [toast]);
 
   if (loadingActive) {
     return (
@@ -437,6 +511,7 @@ function BookRideSection() {
             <div className="rounded-2xl bg-card border border-border shadow-sm p-4">
               <p className="text-sm font-bold text-foreground mb-3">Where to?</p>
 
+              {/* Pickup row */}
               <div className="flex items-center gap-3 mb-2">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
                   <div className="h-2.5 w-2.5 rounded-full bg-primary" />
@@ -445,14 +520,19 @@ function BookRideSection() {
                   className="flex-1 min-w-0 rounded-full bg-secondary/60 px-4 py-2.5 cursor-pointer"
                   onClick={pickupConfirmed ? resetPickup : undefined}
                 >
-                  {isLocating && !pickupConfirmed ? (
+                  {gpsStatus === "detecting" && !pickupConfirmed ? (
                     <div className="flex items-center gap-2">
                       <Loader2 className="h-3 w-3 animate-spin text-primary" />
-                      <span className="text-xs text-muted-foreground">Move map to set pickup...</span>
+                      <span className="text-xs text-muted-foreground">Detecting your location...</span>
+                    </div>
+                  ) : gpsStatus === "failed" && !pickup && !pickupConfirmed ? (
+                    <div className="flex items-center gap-2">
+                      <WifiOff className="h-3 w-3 text-destructive" />
+                      <span className="text-xs text-muted-foreground">Move map to set pickup</span>
                     </div>
                   ) : (
                     <p className="truncate text-xs font-medium text-foreground">
-                      {pickup || "PICK UP"}
+                      {pickup || "Move map to set pickup"}
                     </p>
                   )}
                 </div>
@@ -472,6 +552,7 @@ function BookRideSection() {
                 )}
               </div>
 
+              {/* Destination row */}
               <div className="relative flex items-center gap-3">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
                   <MapPin className="h-4 w-4 text-primary" />
@@ -482,7 +563,7 @@ function BookRideSection() {
                     onChange={(e) => handleDropoffChange(e.target.value)}
                     onFocus={() => { if (suggestions.length) setShowSuggestions(true); }}
                     onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                    placeholder="DESTINATION"
+                    placeholder={pickupConfirmed ? "Search or tap map for destination" : "Set pickup first"}
                     disabled={!pickupConfirmed}
                     className="h-auto border-0 bg-transparent p-0 text-xs font-medium text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none disabled:opacity-50"
                   />
@@ -494,6 +575,7 @@ function BookRideSection() {
                 )}
               </div>
 
+              {/* Suggestions dropdown */}
               <AnimatePresence>
                 {showSuggestions && suggestions.length > 0 && (
                   <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
@@ -520,6 +602,7 @@ function BookRideSection() {
             </div>
           </div>
 
+          {/* Recent & Frequent */}
           {pickupConfirmed && !dropoffCoords && !showSuggestions && (recentAndFrequent.recent.length > 0 || recentAndFrequent.frequent.length > 0) && (
             <div className="shrink-0 z-20 px-4 pb-1 max-h-36 overflow-y-auto">
               {recentAndFrequent.frequent.length > 0 && (
@@ -564,6 +647,7 @@ function BookRideSection() {
         </>
       )}
 
+      {/* Map */}
       <div className="relative flex-1 min-h-0">
         <MapboxMap
           className="h-full w-full"
@@ -574,10 +658,26 @@ function BookRideSection() {
           showGeolocate={!activeRide}
           markers={markers}
           routeCoords={routeCoords}
+          secondaryRouteCoords={riderRouteCoords}
           mapRef={mapInstanceRef}
         />
         <MapControls mapRef={mapInstanceRef} onRecenter={handleRecenter} />
 
+        {/* Map tap hint when pickup confirmed but no destination */}
+        {pickupConfirmed && !dropoffCoords && !activeRide && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="absolute top-3 left-1/2 -translate-x-1/2 z-10"
+          >
+            <div className="flex items-center gap-2 rounded-full bg-card/95 backdrop-blur-sm border border-border px-4 py-2 shadow-md">
+              <MapPin className="h-3.5 w-3.5 text-primary" />
+              <span className="text-xs font-medium text-foreground">Tap map or search for destination</span>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Route estimate badges */}
         {routeEstimate && !activeRide && (
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
             className="absolute bottom-3 left-3 z-10 flex gap-2"
@@ -594,6 +694,7 @@ function BookRideSection() {
         )}
       </div>
 
+      {/* Bottom booking panel */}
       {!activeRide && (
         <BottomBookingPanel
           routeEstimate={routeEstimate}
@@ -681,43 +782,83 @@ function ActiveRideCard({ ride, onCancel, cancelling, riderLocation, mapboxToken
             <StatusIcon className="mr-1 h-3 w-3" />{config.label}
           </Badge>
           {ride.status === "requested" && (
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" />Searching...</div>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin" />Searching...
+            </div>
           )}
         </div>
+
+        {/* Addresses */}
         <div className="space-y-2">
           <div className="flex items-start gap-3">
             <div className="mt-1.5 h-2.5 w-2.5 rounded-full bg-primary shadow-[0_0_8px_hsl(214_65%_54%/0.4)]" />
-            <div><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Pickup</p><p className="text-sm font-medium text-foreground">{ride.pickup_address}</p></div>
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Pickup</p>
+              <p className="text-sm font-medium text-foreground">{ride.pickup_address}</p>
+            </div>
           </div>
           <div className="ml-1 h-4 border-l border-dashed border-border" />
           <div className="flex items-start gap-3">
             <div className="mt-1.5 h-2.5 w-2.5 rounded-full bg-warning shadow-[0_0_8px_hsl(38_95%_55%/0.4)]" />
-            <div><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Dropoff</p><p className="text-sm font-medium text-foreground">{ride.dropoff_address}</p></div>
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Dropoff</p>
+              <p className="text-sm font-medium text-foreground">{ride.dropoff_address}</p>
+            </div>
           </div>
         </div>
+
+        {/* ETA display */}
         {riderEta && ride.status !== "requested" && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-4 flex gap-2">
             <div className="flex flex-1 items-center gap-2 rounded-xl bg-info/10 border border-info/20 px-3 py-2.5">
               <Navigation className="h-4 w-4 text-info" />
-              <div><p className="text-[10px] uppercase tracking-wider text-info/70">Distance</p><p className="text-sm font-bold text-info">{riderEta.distanceKm < 1 ? `${Math.round(riderEta.distanceKm * 1000)}m` : `${riderEta.distanceKm.toFixed(1)} km`}</p></div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-info/70">Distance</p>
+                <p className="text-sm font-bold text-info">
+                  {riderEta.distanceKm < 1 ? `${Math.round(riderEta.distanceKm * 1000)}m` : `${riderEta.distanceKm.toFixed(1)} km`}
+                </p>
+              </div>
             </div>
             <div className="flex flex-1 items-center gap-2 rounded-xl bg-primary/10 border border-primary/20 px-3 py-2.5">
               <Clock className="h-4 w-4 text-primary" />
-              <div><p className="text-[10px] uppercase tracking-wider text-primary/70">{ride.status === "picked_up" ? "Arriving in" : "ETA"}</p><p className="text-sm font-bold text-primary">{riderEta.durationMin <= 1 ? "< 1 min" : `${riderEta.durationMin} min`}</p></div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-primary/70">
+                  {ride.status === "picked_up" ? "Arriving in" : "ETA"}
+                </p>
+                <p className="text-sm font-bold text-primary">
+                  {riderEta.durationMin <= 1 ? "< 1 min" : `${riderEta.durationMin} min`}
+                </p>
+              </div>
             </div>
           </motion.div>
         )}
+
+        {/* Rider approaching indicator (when no ETA yet) */}
+        {!riderEta && ride.status !== "requested" && riderLocation && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-4 flex items-center gap-2 rounded-xl bg-info/10 border border-info/20 px-3 py-2.5">
+            <div className="h-2 w-2 rounded-full bg-info animate-pulse" />
+            <span className="text-xs font-medium text-info">
+              {ride.status === "picked_up" ? "Heading to destination..." : "Rider is on the way..."}
+            </span>
+          </motion.div>
+        )}
+
+        {/* Fare */}
         {ride.fare && (
           <div className="mt-4 flex items-center justify-between rounded-xl bg-secondary/50 px-4 py-3">
             <span className="text-xs text-muted-foreground">Estimated Fare</span>
             <span className="text-lg font-bold text-foreground">₱{Number(ride.fare).toFixed(2)}</span>
           </div>
         )}
+
+        {/* Progress bar */}
         <div className="mt-4 flex gap-1">
           {steps.map((_, i) => (
-            <div key={i} className={`h-1 flex-1 rounded-full transition-colors ${i <= currentIdx ? "bg-primary" : "bg-secondary"}`} />
+            <div key={i} className={`h-1 flex-1 rounded-full transition-colors duration-500 ${i <= currentIdx ? "bg-primary" : "bg-secondary"}`} />
           ))}
         </div>
+
+        {/* Actions */}
         {ride.status === "picked_up" && (
           <Button className="mt-4 h-12 w-full text-sm font-semibold" onClick={() => confirmMutation.mutate()} disabled={confirmMutation.isPending}>
             {confirmMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
@@ -758,7 +899,11 @@ function BottomBookingPanel({
   ];
 
   return (
-    <div className="relative z-20 shrink-0 border-t border-border bg-card px-4 pt-3 pb-4 safe-bottom">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="relative z-20 shrink-0 border-t border-border bg-card px-4 pt-3 pb-4 safe-bottom"
+    >
       <div className="mb-3 flex gap-2">
         <button
           onClick={() => onPaymentMethodChange(paymentMethod === "cash" ? "wallet" : "cash")}
@@ -812,11 +957,11 @@ function BottomBookingPanel({
           </div>
         )}
       </Button>
-    </div>
+    </motion.div>
   );
 }
 
-/* ─── Ride History (Redesigned) ─── */
+/* ─── Ride History ─── */
 function RideHistory() {
   const { user } = useAuth();
   const [selectedRide, setSelectedRide] = useState<any>(null);
@@ -844,7 +989,6 @@ function RideHistory() {
     enabled: !!user && rideIds.length > 0,
   });
 
-  // Fetch rider profiles for completed rides
   const riderIds = rides?.filter(r => r.rider_id).map(r => r.rider_id!) || [];
   const { data: riderProfiles } = useQuery({
     queryKey: ["rider-profiles", riderIds],
@@ -856,7 +1000,6 @@ function RideHistory() {
     enabled: riderIds.length > 0,
   });
 
-  // Fetch vehicles for riders
   const { data: vehicles } = useQuery({
     queryKey: ["rider-vehicles", riderIds],
     queryFn: async () => {
@@ -886,7 +1029,6 @@ function RideHistory() {
           <h2 className="text-xl font-bold text-foreground">Ride History</h2>
         </div>
 
-        {/* Ride detail card */}
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
           className="rounded-2xl border border-primary/20 bg-gradient-to-b from-primary/5 to-card p-5 mb-6"
         >
@@ -894,7 +1036,6 @@ function RideHistory() {
             <Badge className={`${config.color} border text-[10px]`}>{config.label}</Badge>
           </div>
 
-          {/* From / To */}
           <div className="flex items-start gap-3 mb-4">
             <div className="flex flex-col items-center gap-1 mt-1">
               <div className="h-3 w-3 rounded-full border-2 border-primary bg-primary/20" />
@@ -913,7 +1054,6 @@ function RideHistory() {
             </div>
           </div>
 
-          {/* Rider info */}
           {riderProfile && (
             <div className="flex items-center gap-3 mb-3 py-2 border-t border-border/50">
               <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center">
@@ -930,7 +1070,6 @@ function RideHistory() {
             </div>
           )}
 
-          {/* Vehicle plate */}
           {vehicle?.plate_number && (
             <div className="flex items-center gap-3 py-2 border-t border-border/50">
               <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center">
@@ -942,7 +1081,6 @@ function RideHistory() {
             </div>
           )}
 
-          {/* Rating stars */}
           <div className="flex justify-center gap-1 mt-4">
             {review ? (
               Array.from({ length: 5 }).map((_, j) => (
@@ -956,18 +1094,13 @@ function RideHistory() {
           </div>
         </motion.div>
 
-        {/* Repeat Order button */}
         {selectedRide.dropoff_lat && selectedRide.dropoff_lng && (
-          <Button className="w-full h-12 rounded-full text-base font-bold mb-4" onClick={() => {
-            setSelectedRide(null);
-            // Navigate to book tab would happen via the parent
-          }}>
+          <Button className="w-full h-12 rounded-full text-base font-bold mb-4" onClick={() => setSelectedRide(null)}>
             <RotateCw className="mr-2 h-4 w-4" />
             Repeat Order
           </Button>
         )}
 
-        {/* Support button */}
         <div className="flex flex-col items-center">
           <button onClick={() => setShowSupport(!showSupport)} className="flex flex-col items-center gap-1 text-muted-foreground hover:text-foreground transition-colors">
             <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center">
@@ -977,7 +1110,6 @@ function RideHistory() {
           </button>
         </div>
 
-        {/* Support bottom sheet */}
         <AnimatePresence>
           {showSupport && (
             <motion.div

@@ -19,8 +19,14 @@ interface MapboxMapProps {
     lat: number;
     color?: string;
     label?: string;
+    /** If true, marker position animates smoothly instead of jumping */
+    animate?: boolean;
+    /** Pulse effect for live markers */
+    pulse?: boolean;
   }>;
   routeCoords?: [number, number][];
+  /** Secondary route line (e.g. rider→pickup while showing pickup→dropoff) */
+  secondaryRouteCoords?: [number, number][];
   interactive?: boolean;
   showGeolocate?: boolean;
   /** Expose map ref for external control */
@@ -37,13 +43,14 @@ export default function MapboxMap({
   showCenterPin = false,
   markers = [],
   routeCoords,
+  secondaryRouteCoords,
   interactive = true,
   showGeolocate = false,
   mapRef,
 }: MapboxMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
-  const markersRef = useRef<mapboxgl.Marker[]>([]);
+  const markersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
   const geoFired = useRef(false);
   const { data: token, isLoading } = useMapboxToken();
 
@@ -140,6 +147,10 @@ export default function MapboxMap({
         }
       });
 
+      geoCtrl.on("error", () => {
+        // GPS failed – fire geolocate with null-like to signal error handled upstream
+      });
+
       map.current.on("load", () => {
         geoCtrl.trigger();
       });
@@ -153,40 +164,56 @@ export default function MapboxMap({
     return () => {
       map.current?.remove();
       map.current = null;
+      markersRef.current.clear();
       if (mapRef) mapRef.current = null;
     };
   }, [token]);
 
-  // Update markers
+  // Update markers with smooth animation for tracked markers
   useEffect(() => {
     if (!map.current) return;
 
-    markersRef.current.forEach((m) => m.remove());
-    markersRef.current = [];
+    const currentMarkerIds = new Set(markers.map(m => m.id));
+    
+    // Remove markers that no longer exist
+    markersRef.current.forEach((marker, id) => {
+      if (!currentMarkerIds.has(id)) {
+        marker.remove();
+        markersRef.current.delete(id);
+      }
+    });
 
     markers.forEach((m) => {
-      const el = document.createElement("div");
-      el.className = "mapbox-custom-marker";
-      el.style.cssText = `
-        width: 28px; height: 28px; border-radius: 50%;
-        background: ${m.color || "#3A7FD9"};
-        border: 3px solid rgba(255,255,255,0.9);
-        box-shadow: 0 0 12px ${m.color || "#3A7FD9"}80, 0 2px 8px rgba(0,0,0,0.3);
-        cursor: pointer;
-      `;
+      const existing = markersRef.current.get(m.id);
+      
+      if (existing) {
+        // Update position – animate if flagged
+        const currentPos = existing.getLngLat();
+        const targetPos: [number, number] = [m.lng, m.lat];
+        
+        if (m.animate && (Math.abs(currentPos.lng - m.lng) > 0.00001 || Math.abs(currentPos.lat - m.lat) > 0.00001)) {
+          // Smooth animation over 1 second
+          animateMarker(existing, [currentPos.lng, currentPos.lat], targetPos, 1000);
+        } else {
+          existing.setLngLat(targetPos);
+        }
+      } else {
+        // Create new marker
+        const el = createMarkerElement(m.color || "#3A7FD9", !!m.pulse);
 
-      const marker = new mapboxgl.Marker({ element: el })
-        .setLngLat([m.lng, m.lat])
-        .addTo(map.current!);
+        const marker = new mapboxgl.Marker({ element: el })
+          .setLngLat([m.lng, m.lat])
+          .addTo(map.current!);
 
-      if (m.label) {
-        marker.setPopup(
-          new mapboxgl.Popup({ offset: 20, closeButton: false })
-            .setHTML(`<div style="padding:4px 8px;font-size:12px;font-weight:600;color:#1A1A1A;">${m.label}</div>`)
-        );
+        if (m.label) {
+          marker.setPopup(
+            new mapboxgl.Popup({ offset: 20, closeButton: false })
+              .setHTML(`<div style="padding:4px 8px;font-size:12px;font-weight:600;color:#1A1A1A;">${m.label}</div>`)
+          );
+        }
+
+        markersRef.current.set(m.id, marker);
       }
-
-      markersRef.current.push(marker);
     });
   }, [markers]);
 
@@ -194,18 +221,32 @@ export default function MapboxMap({
   useEffect(() => {
     if (!map.current) return;
 
+    const drawRoutes = () => {
+      if (!map.current) return;
+      
+      // Primary route
+      drawRoute(map.current, "route", routeCoords, "#3A7FD9", 5, 0.85);
+      
+      // Secondary route (dashed, e.g. rider→pickup)
+      drawRoute(map.current, "route-secondary", secondaryRouteCoords, "#6FA8FF", 4, 0.6, true);
+
+      fitToView();
+    };
+
     const fitToView = () => {
       if (!map.current) return;
       const bounds = new mapboxgl.LngLatBounds();
       let hasPoints = false;
 
-      if (routeCoords?.length) {
-        routeCoords.forEach((c) => { bounds.extend(c); hasPoints = true; });
-      }
+      [routeCoords, secondaryRouteCoords].forEach(coords => {
+        if (coords?.length) {
+          coords.forEach((c) => { bounds.extend(c); hasPoints = true; });
+        }
+      });
 
       markers.forEach((m) => { bounds.extend([m.lng, m.lat]); hasPoints = true; });
 
-      if (hasPoints && (markers.length > 1 || (routeCoords?.length ?? 0) > 0)) {
+      if (hasPoints && (markers.length > 1 || (routeCoords?.length ?? 0) > 0 || (secondaryRouteCoords?.length ?? 0) > 0)) {
         map.current.fitBounds(bounds, {
           padding: { top: 80, bottom: 280, left: 40, right: 40 },
           maxZoom: 15,
@@ -214,48 +255,12 @@ export default function MapboxMap({
       }
     };
 
-    const addRoute = () => {
-      if (!map.current) return;
-
-      if (!routeCoords?.length) {
-        if (map.current.getLayer("route")) map.current.removeLayer("route");
-        if (map.current.getSource("route")) map.current.removeSource("route");
-        fitToView();
-        return;
-      }
-
-      const geojsonData: GeoJSON.Feature = {
-        type: "Feature",
-        properties: {},
-        geometry: { type: "LineString", coordinates: routeCoords },
-      };
-
-      if (map.current.getSource("route")) {
-        (map.current.getSource("route") as mapboxgl.GeoJSONSource).setData(geojsonData);
-      } else {
-        map.current.addSource("route", { type: "geojson", data: geojsonData });
-        map.current.addLayer({
-          id: "route",
-          type: "line",
-          source: "route",
-          layout: { "line-join": "round", "line-cap": "round" },
-          paint: {
-            "line-color": "#3A7FD9",
-            "line-width": 5,
-            "line-opacity": 0.85,
-          },
-        });
-      }
-
-      fitToView();
-    };
-
     if (map.current.isStyleLoaded()) {
-      addRoute();
+      drawRoutes();
     } else {
-      map.current.on("load", addRoute);
+      map.current.on("load", drawRoutes);
     }
-  }, [routeCoords, markers]);
+  }, [routeCoords, secondaryRouteCoords, markers]);
 
   if (isLoading) {
     return (
@@ -272,7 +277,7 @@ export default function MapboxMap({
       {showCenterPin && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <div className="relative -mt-8 flex flex-col items-center">
-            <div className="h-8 w-8 rounded-full border-[3px] border-primary bg-primary/20 shadow-lg shadow-primary/30" />
+            <div className="h-8 w-8 rounded-full border-[3px] border-primary bg-primary/20 shadow-lg shadow-primary/30 animate-pulse" />
             <div className="h-4 w-0.5 bg-primary" />
             <div className="h-1.5 w-3 rounded-full bg-primary/40" />
           </div>
@@ -280,4 +285,113 @@ export default function MapboxMap({
       )}
     </div>
   );
+}
+
+/* ─── Helpers ─── */
+
+function createMarkerElement(color: string, pulse: boolean): HTMLDivElement {
+  const el = document.createElement("div");
+  el.className = "mapbox-custom-marker";
+  el.style.cssText = `
+    width: 28px; height: 28px; border-radius: 50%;
+    background: ${color};
+    border: 3px solid rgba(255,255,255,0.9);
+    box-shadow: 0 0 12px ${color}80, 0 2px 8px rgba(0,0,0,0.3);
+    cursor: pointer;
+    transition: transform 0.2s ease;
+  `;
+  
+  if (pulse) {
+    const pulseRing = document.createElement("div");
+    pulseRing.style.cssText = `
+      position: absolute; top: -6px; left: -6px;
+      width: 40px; height: 40px; border-radius: 50%;
+      border: 2px solid ${color};
+      animation: marker-pulse 2s ease-out infinite;
+      opacity: 0;
+    `;
+    el.style.position = "relative";
+    el.appendChild(pulseRing);
+    
+    // Add keyframes if not already added
+    if (!document.getElementById("marker-pulse-style")) {
+      const style = document.createElement("style");
+      style.id = "marker-pulse-style";
+      style.textContent = `
+        @keyframes marker-pulse {
+          0% { transform: scale(0.8); opacity: 0.6; }
+          100% { transform: scale(2); opacity: 0; }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  }
+  
+  return el;
+}
+
+function animateMarker(
+  marker: mapboxgl.Marker,
+  from: [number, number],
+  to: [number, number],
+  duration: number
+) {
+  const start = performance.now();
+  
+  function step(timestamp: number) {
+    const progress = Math.min((timestamp - start) / duration, 1);
+    // Ease out cubic
+    const eased = 1 - Math.pow(1 - progress, 3);
+    
+    const lng = from[0] + (to[0] - from[0]) * eased;
+    const lat = from[1] + (to[1] - from[1]) * eased;
+    
+    marker.setLngLat([lng, lat]);
+    
+    if (progress < 1) {
+      requestAnimationFrame(step);
+    }
+  }
+  
+  requestAnimationFrame(step);
+}
+
+function drawRoute(
+  map: mapboxgl.Map,
+  layerId: string,
+  coords: [number, number][] | undefined,
+  color: string,
+  width: number,
+  opacity: number,
+  dashed = false
+) {
+  if (!coords?.length) {
+    if (map.getLayer(layerId)) map.removeLayer(layerId);
+    if (map.getSource(layerId)) map.removeSource(layerId);
+    return;
+  }
+
+  const geojsonData: GeoJSON.Feature = {
+    type: "Feature",
+    properties: {},
+    geometry: { type: "LineString", coordinates: coords },
+  };
+
+  if (map.getSource(layerId)) {
+    (map.getSource(layerId) as mapboxgl.GeoJSONSource).setData(geojsonData);
+  } else {
+    map.addSource(layerId, { type: "geojson", data: geojsonData });
+    map.addLayer({
+      id: layerId,
+      type: "line",
+      source: layerId,
+      layout: { "line-join": "round", "line-cap": "round" },
+      paint: {
+        "line-color": color,
+        "line-width": width,
+        "line-opacity": opacity,
+        ...(dashed ? { "line-dasharray": [2, 2] } : {}),
+      },
+    });
+  }
 }
