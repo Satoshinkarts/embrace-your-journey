@@ -135,15 +135,12 @@ function RideMonitorView() {
 
   const assignMutation = useMutation({
     mutationFn: async ({ rideId, riderId }: { rideId: string; riderId: string }) => {
-      const { data: ride } = await supabase.from("rides").select("distance_km").eq("id", rideId).single();
-      const distanceKm = ride?.distance_km ?? 3;
-      const fare = 40 + Number(distanceKm) * 10;
-      const { error } = await supabase.from("rides").update({
-        rider_id: riderId,
-        status: "accepted" as any,
-        fare: Math.round(fare * 100) / 100,
-      }).eq("id", rideId);
+      const { data, error } = await supabase.rpc("operator_assign_ride", {
+        _ride_id: rideId,
+        _rider_id: riderId,
+      });
       if (error) throw error;
+      if (data === false) throw new Error("Ride is no longer available");
     },
     onSuccess: () => {
       toast({ title: "Rider assigned!" });
