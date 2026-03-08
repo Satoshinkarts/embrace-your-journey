@@ -34,6 +34,7 @@ const roleNavSections: Record<string, NavSection[]> = {
         { label: "Active Rides", icon: MapPin, path: "/dashboard" },
         { label: "Trip History", icon: Clock, path: "/dashboard/trips" },
         { label: "Earnings", icon: Wallet, path: "/dashboard/earnings" },
+        { label: "Profile", icon: User, path: "/dashboard/rider-profile" },
       ],
     },
   ],
