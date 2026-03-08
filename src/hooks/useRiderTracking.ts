@@ -39,7 +39,7 @@ export function useRiderLocationTracker(intervalMs = 10000) {
   const latestPos = useRef<{ lat: number; lng: number; heading: number | null; speed: number | null } | null>(null);
 
   useEffect(() => {
-    if (!user || !navigator.geolocation) return;
+    if (!user || !navigator.geolocation || intervalMs === 0) return;
 
     // Start watching position
     watchIdRef.current = navigator.geolocation.watchPosition(
