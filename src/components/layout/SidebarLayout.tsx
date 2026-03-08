@@ -117,6 +117,7 @@ export default function SidebarLayout({ children, fullScreen = false }: SidebarL
   };
 
   const isMobileRole = primaryRole === "customer" || primaryRole === "rider";
+  const isRider = primaryRole === "rider";
 
   // Mobile bottom-tab layout for customer/rider
   if (isMobileRole) {
