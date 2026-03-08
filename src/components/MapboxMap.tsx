@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
@@ -9,6 +9,10 @@ interface MapboxMapProps {
   className?: string;
   onMapClick?: (lng: number, lat: number) => void;
   onGeolocate?: (lng: number, lat: number) => void;
+  /** Fires when map stops moving with center coords – used for center-pin mode */
+  onCenterChange?: (lng: number, lat: number) => void;
+  /** Show a fixed center pin overlay */
+  showCenterPin?: boolean;
   markers?: Array<{
     id: string;
     lng: number;
@@ -19,6 +23,8 @@ interface MapboxMapProps {
   routeCoords?: [number, number][];
   interactive?: boolean;
   showGeolocate?: boolean;
+  /** Expose map ref for external control */
+  mapRef?: React.MutableRefObject<mapboxgl.Map | null>;
 }
 
 export default function MapboxMap({
@@ -27,16 +33,24 @@ export default function MapboxMap({
   className = "",
   onMapClick,
   onGeolocate,
+  onCenterChange,
+  showCenterPin = false,
   markers = [],
   routeCoords,
   interactive = true,
   showGeolocate = false,
+  mapRef,
 }: MapboxMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const geoFired = useRef(false);
   const { data: token, isLoading } = useMapboxToken();
+
+  // Expose map instance
+  useEffect(() => {
+    if (mapRef) mapRef.current = map.current;
+  });
 
   useEffect(() => {
     if (!token || !mapContainer.current || map.current) return;
@@ -55,8 +69,10 @@ export default function MapboxMap({
       ],
     });
 
+    if (mapRef) mapRef.current = map.current;
+
     map.current.addControl(
-      new mapboxgl.NavigationControl({ showCompass: false }),
+      new mapboxgl.NavigationControl({ showCompass: false, showZoom: false }),
       "top-right"
     );
 
@@ -91,6 +107,14 @@ export default function MapboxMap({
       });
     });
 
+    // Center change callback for center-pin mode
+    if (onCenterChange) {
+      map.current.on("moveend", () => {
+        const c = map.current?.getCenter();
+        if (c) onCenterChange(c.lng, c.lat);
+      });
+    }
+
     if (showGeolocate && onGeolocate) {
       const geoCtrl = new mapboxgl.GeolocateControl({
         positionOptions: { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
@@ -121,6 +145,7 @@ export default function MapboxMap({
     return () => {
       map.current?.remove();
       map.current = null;
+      if (mapRef) mapRef.current = null;
     };
   }, [token]);
 
@@ -232,5 +257,19 @@ export default function MapboxMap({
     );
   }
 
-  return <div ref={mapContainer} className={`${className}`} />;
+  return (
+    <div className={`relative ${className}`}>
+      <div ref={mapContainer} className="h-full w-full" />
+      {/* Center pin overlay */}
+      {showCenterPin && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="relative -mt-8 flex flex-col items-center">
+            <div className="h-8 w-8 rounded-full border-[3px] border-primary bg-primary/20 shadow-lg shadow-primary/30" />
+            <div className="h-4 w-0.5 bg-primary" />
+            <div className="h-1.5 w-3 rounded-full bg-primary/40" />
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
