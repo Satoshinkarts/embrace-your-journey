@@ -78,7 +78,7 @@ function useChannelUnread(dmChannelId: string | null) {
     refetchInterval: 30000,
   });
 
-  // Realtime: refresh on new messages in this channel
+  // Realtime: refresh on new messages in this channel + alert
   useEffect(() => {
     if (!dmChannelId || !user) return;
     const channel = supabase
@@ -89,6 +89,21 @@ function useChannelUnread(dmChannelId: string | null) {
         (payload: any) => {
           if (payload.new?.sender_id !== user.id) {
             queryClient.invalidateQueries({ queryKey: ["dm-channel-unread", dmChannelId] });
+            // Sound + vibration alert
+            try {
+              const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              osc.connect(gain);
+              gain.connect(ctx.destination);
+              osc.frequency.setValueAtTime(880, ctx.currentTime);
+              osc.frequency.setValueAtTime(660, ctx.currentTime + 0.08);
+              gain.gain.setValueAtTime(0.15, ctx.currentTime);
+              gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+              osc.start(ctx.currentTime);
+              osc.stop(ctx.currentTime + 0.2);
+            } catch {}
+            try { navigator.vibrate?.([100, 50, 100]); } catch {}
           }
         }
       )
