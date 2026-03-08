@@ -7,7 +7,8 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import MapboxMap from "@/components/MapboxMap";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Navigation, CheckCircle, Clock, DollarSign, Loader2, Star, Trophy, AlertTriangle } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { MapPin, Navigation, CheckCircle, Clock, DollarSign, Loader2, Star, Trophy, AlertTriangle, Power, Wifi, WifiOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { RiderRankingChannel } from "@/components/RankingChannel";
@@ -26,13 +27,14 @@ const statusFlow: { from: RideStatus; to: RideStatus; label: string; icon: React
 export default function RiderDashboard() {
   const [rankingOpen, setRankingOpen] = useState(false);
   const unreadCount = useUnreadDMCount();
+  const [isOnline, setIsOnline] = useState(true);
 
-  // Start tracking rider location
-  useRiderLocationTracker(10000);
+  // Start tracking rider location (only when online)
+  useRiderLocationTracker(isOnline ? 10000 : 0);
 
   return (
     <DashboardLayout fullScreen>
-      <ActiveRideOrAvailable />
+      <ActiveRideOrAvailable isOnline={isOnline} onToggleOnline={setIsOnline} />
       {/* Dispatch directive banner */}
       <DirectiveBanner />
       {/* Floating ranking button */}
@@ -109,7 +111,7 @@ function DirectiveBanner() {
             {activeDirective.status === "pending" ? (
               <Button
                 size="sm"
-                 className="flex-1 text-xs h-8"
+                className="flex-1 text-xs h-8"
                 onClick={handleAcknowledge}
                 disabled={updateDirective.isPending}
               >
@@ -145,11 +147,22 @@ export function RiderEarnings() {
   return <DashboardLayout><EarningsView /></DashboardLayout>;
 }
 
-function ActiveRideOrAvailable() {
+function ActiveRideOrAvailable({ isOnline, onToggleOnline }: { isOnline: boolean; onToggleOnline: (v: boolean) => void }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { data: mapboxToken } = useMapboxToken();
+
+  // Toggle online status in DB
+  const handleToggleOnline = async (online: boolean) => {
+    onToggleOnline(online);
+    if (!online && user) {
+      await supabase
+        .from("rider_locations")
+        .update({ is_online: false } as any)
+        .eq("rider_id", user.id);
+    }
+  };
 
   const { data: activeRide, isLoading: loadingActive } = useQuery({
     queryKey: ["rider-active-ride", user?.id],
@@ -174,9 +187,28 @@ function ActiveRideOrAvailable() {
       if (error) throw error;
       return data;
     },
-    enabled: !!user && !activeRide,
+    enabled: !!user && !activeRide && isOnline,
     refetchInterval: 5000,
   });
+
+  // Realtime subscription for new ride requests and status changes
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel("rider-rides-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "rides" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["rider-active-ride", user.id] });
+          queryClient.invalidateQueries({ queryKey: ["available-rides"] });
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user, queryClient]);
 
   const acceptMutation = useMutation({
     mutationFn: async (rideId: string) => {
@@ -266,7 +298,7 @@ function ActiveRideOrAvailable() {
 
   // Build markers
   const markers = [
-    ...(riderPos ? [{ id: "rider-self", lng: riderPos[0], lat: riderPos[1], color: "#3A7FD9", label: "You 🏍️" }] : []),
+    ...(riderPos ? [{ id: "rider-self", lng: riderPos[0], lat: riderPos[1], color: "#3A7FD9", label: "You 🏍️", pulse: true, animate: true }] : []),
     ...(activeRide?.pickup_lat && activeRide?.pickup_lng
       ? [{ id: "pickup", lng: activeRide.pickup_lng, lat: activeRide.pickup_lat, color: "#6FA8FF", label: "Pickup" }] : []),
     ...(activeRide?.dropoff_lat && activeRide?.dropoff_lng
@@ -287,26 +319,56 @@ function ActiveRideOrAvailable() {
       {/* Status bar overlay */}
       <div className="map-gradient-top pointer-events-none absolute top-0 left-0 right-0 h-16 z-10" />
 
-      {activeRide && (
-        <div className="absolute top-3 left-4 right-4 z-20">
-          <div className="glass-card flex items-center gap-2 px-3 py-2">
-            <span className="pulse-dot" />
-            <span className="text-xs font-medium text-foreground capitalize">
-              {(activeRide.status as string).replace("_", " ")}
-            </span>
-            {routeInfo && (
-              <span className="ml-auto text-xs text-muted-foreground">
-                {routeInfo.distanceKm.toFixed(1)} km · ~{routeInfo.durationMin} min
-              </span>
+      {/* Online/Offline toggle + active ride status */}
+      <div className="absolute top-3 left-4 right-4 z-20">
+        <div className="glass-card flex items-center justify-between gap-2 px-3 py-2">
+          {/* Online toggle */}
+          <div className="flex items-center gap-2">
+            {isOnline ? (
+              <Wifi className="h-3.5 w-3.5 text-primary" />
+            ) : (
+              <WifiOff className="h-3.5 w-3.5 text-muted-foreground" />
             )}
+            <span className={`text-xs font-medium ${isOnline ? "text-primary" : "text-muted-foreground"}`}>
+              {isOnline ? "Online" : "Offline"}
+            </span>
+            <Switch
+              checked={isOnline}
+              onCheckedChange={handleToggleOnline}
+              className="scale-75"
+            />
           </div>
+
+          {/* Active ride status */}
+          {activeRide && (
+            <div className="flex items-center gap-2">
+              <span className="pulse-dot" />
+              <span className="text-xs font-medium text-foreground capitalize">
+                {(activeRide.status as string).replace("_", " ")}
+              </span>
+              {routeInfo && (
+                <span className="text-[10px] text-muted-foreground">
+                  {routeInfo.distanceKm.toFixed(1)}km · ~{routeInfo.durationMin}min
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Available ride count when no active ride */}
+          {!activeRide && isOnline && (
+            <Badge className="bg-primary/10 text-primary border-primary/20 border text-[10px]">
+              {availableRides?.length || 0} nearby
+            </Badge>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Bottom sheet */}
       <div className="relative z-20 mt-auto">
         <div className="map-gradient-bottom pt-16 pb-20">
-          {activeRide ? (
+          {!isOnline ? (
+            <OfflineCard onGoOnline={() => handleToggleOnline(true)} />
+          ) : activeRide ? (
             <ActiveTripCard ride={activeRide} advanceMutation={advanceMutation} routeInfo={routeInfo} />
           ) : (
             <AvailableRidesSheet rides={availableRides || []} onAccept={(id) => acceptMutation.mutate(id)} accepting={acceptMutation.isPending} />
@@ -314,6 +376,22 @@ function ActiveRideOrAvailable() {
         </div>
       </div>
     </div>
+  );
+}
+
+function OfflineCard({ onGoOnline }: { onGoOnline: () => void }) {
+  return (
+    <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} className="mx-4">
+      <div className="glass-card p-6 text-center">
+        <WifiOff className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
+        <p className="text-sm font-semibold text-foreground mb-1">You're Offline</p>
+        <p className="text-xs text-muted-foreground mb-4">Go online to start receiving ride requests</p>
+        <Button onClick={onGoOnline} className="h-11 w-full rounded-xl font-semibold gap-2">
+          <Power className="h-4 w-4" />
+          Go Online
+        </Button>
+      </div>
+    </motion.div>
   );
 }
 
@@ -408,7 +486,10 @@ function AvailableRidesSheet({ rides, onAccept, accepting }: { rides: any[]; onA
                     <Navigation className="h-3.5 w-3.5 shrink-0 text-warning" />
                     <p className="truncate text-xs text-muted-foreground">{ride.dropoff_address}</p>
                   </div>
-                  <p className="mt-1.5 text-[10px] text-muted-foreground">
+                  {ride.fare && (
+                    <p className="mt-1.5 text-xs font-semibold text-primary">₱{Number(ride.fare).toFixed(2)}</p>
+                  )}
+                  <p className="mt-0.5 text-[10px] text-muted-foreground">
                     {new Date(ride.created_at).toLocaleTimeString()}
                   </p>
                 </div>

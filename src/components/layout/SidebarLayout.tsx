@@ -117,6 +117,7 @@ export default function SidebarLayout({ children, fullScreen = false }: SidebarL
   };
 
   const isMobileRole = primaryRole === "customer" || primaryRole === "rider";
+  const isRider = primaryRole === "rider";
 
   // Mobile bottom-tab layout for customer/rider
   if (isMobileRole) {
@@ -132,12 +133,14 @@ export default function SidebarLayout({ children, fullScreen = false }: SidebarL
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setProfileOpen(true)}
-              className="flex items-center justify-center rounded-full bg-primary/10 h-8 w-8 text-primary transition-colors active:bg-primary/20"
-            >
-              <User className="h-4 w-4" />
-            </button>
+            {!isRider && (
+              <button
+                onClick={() => setProfileOpen(true)}
+                className="flex items-center justify-center rounded-full bg-primary/10 h-8 w-8 text-primary transition-colors active:bg-primary/20"
+              >
+                <User className="h-4 w-4" />
+              </button>
+            )}
             <button
               onClick={handleSignOut}
               className="flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors active:bg-muted"
