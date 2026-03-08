@@ -93,6 +93,7 @@ const AppRoutes = () => (
     {/* Rider routes */}
     <Route path="/dashboard/trips" element={<RoleGuard allowedRoles={["rider"]}><RiderTrips /></RoleGuard>} />
     <Route path="/dashboard/earnings" element={<RoleGuard allowedRoles={["rider"]}><RiderEarnings /></RoleGuard>} />
+    <Route path="/dashboard/rider-profile" element={<RoleGuard allowedRoles={["rider"]}><RiderProfile /></RoleGuard>} />
 
     {/* Dispatcher routes */}
     <Route path="/dashboard/assign" element={<RoleGuard allowedRoles={["dispatcher", "admin"]}><DispatcherAssign /></RoleGuard>} />
