@@ -8,7 +8,7 @@ import MapboxMap from "@/components/MapboxMap";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { MapPin, Navigation, CheckCircle, Clock, DollarSign, Loader2, Star, Trophy, AlertTriangle, Power, Wifi, WifiOff } from "lucide-react";
+import { MapPin, Navigation, CheckCircle, Clock, DollarSign, Loader2, Star, Trophy, AlertTriangle, Power, Wifi, WifiOff, MessageCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { RiderRankingChannel } from "@/components/RankingChannel";
