@@ -8,16 +8,62 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGetOrCreateDM, useDMMessages, useSendDM } from "@/hooks/useDirectMessages";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface RideChatProps {
   otherUserId: string;
   otherUserName?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onChannelReady?: (channelId: string) => void;
 }
 
-export default function RideChat({ otherUserId, otherUserName, open, onOpenChange }: RideChatProps) {
+/** Hook: unread count for a specific DM channel */
+function useChannelUnread(dmChannelId: string | null) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const query = useQuery<number>({
+    queryKey: ["dm-channel-unread", dmChannelId],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("dm_messages")
+        .select("*", { count: "exact", head: true })
+        .eq("dm_channel_id", dmChannelId!)
+        .neq("sender_id", user!.id)
+        .is("read_at", null);
+      if (error) return 0;
+      return count || 0;
+    },
+    enabled: !!dmChannelId && !!user,
+    refetchInterval: 30000,
+  });
+
+  // Realtime: refresh on new messages in this channel
+  useEffect(() => {
+    if (!dmChannelId || !user) return;
+    const channel = supabase
+      .channel(`unread-ch-${dmChannelId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "dm_messages", filter: `dm_channel_id=eq.${dmChannelId}` },
+        (payload: any) => {
+          if (payload.new?.sender_id !== user.id) {
+            queryClient.invalidateQueries({ queryKey: ["dm-channel-unread", dmChannelId] });
+          }
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [dmChannelId, user, queryClient]);
+
+  return query.data || 0;
+}
+
+export default function RideChat({ otherUserId, otherUserName, open, onOpenChange, onChannelReady }: RideChatProps) {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [dmChannelId, setDmChannelId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -30,9 +76,19 @@ export default function RideChat({ otherUserId, otherUserName, open, onOpenChang
   useEffect(() => {
     if (!open || !otherUserId || dmChannelId) return;
     getOrCreateDM.mutate(otherUserId, {
-      onSuccess: (id) => setDmChannelId(id),
+      onSuccess: (id) => {
+        setDmChannelId(id);
+        onChannelReady?.(id);
+      },
     });
   }, [open, otherUserId]);
+
+  // Clear unread when chat is open and messages load
+  useEffect(() => {
+    if (open && dmChannelId) {
+      queryClient.invalidateQueries({ queryKey: ["dm-channel-unread", dmChannelId] });
+    }
+  }, [open, dmChannelId, messages?.length]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -144,9 +200,22 @@ export default function RideChat({ otherUserId, otherUserName, open, onOpenChang
   );
 }
 
-/** Floating chat button for use during active rides */
+/** Floating chat button with unread badge for use during active rides */
 export function RideChatButton({ otherUserId, otherUserName }: { otherUserId: string; otherUserName?: string }) {
   const [open, setOpen] = useState(false);
+  const [channelId, setChannelId] = useState<string | null>(null);
+  const { user } = useAuth();
+
+  // Pre-resolve the DM channel for unread tracking (without opening chat)
+  const getOrCreateDM = useGetOrCreateDM();
+  useEffect(() => {
+    if (!otherUserId || !user || channelId) return;
+    getOrCreateDM.mutate(otherUserId, {
+      onSuccess: (id) => setChannelId(id),
+    });
+  }, [otherUserId, user]);
+
+  const unread = useChannelUnread(open ? null : channelId); // pause counting when chat is open
 
   return (
     <>
@@ -154,15 +223,28 @@ export function RideChatButton({ otherUserId, otherUserName }: { otherUserId: st
         size="icon"
         variant="outline"
         onClick={() => setOpen(true)}
-        className="h-10 w-10 rounded-full bg-card border-border shadow-md"
+        className="relative h-10 w-10 rounded-full bg-card border-border shadow-md"
       >
         <MessageCircle className="h-4.5 w-4.5 text-primary" />
+        <AnimatePresence>
+          {unread > 0 && (
+            <motion.span
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0 }}
+              className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground shadow-sm"
+            >
+              {unread > 9 ? "9+" : unread}
+            </motion.span>
+          )}
+        </AnimatePresence>
       </Button>
       <RideChat
         otherUserId={otherUserId}
         otherUserName={otherUserName}
         open={open}
         onOpenChange={setOpen}
+        onChannelReady={setChannelId}
       />
     </>
   );
