@@ -733,6 +733,17 @@ function ActiveRideCard({ ride, onCancel, cancelling, riderLocation, mapboxToken
 }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Fetch rider profile name for chat
+  const { data: riderProfile } = useQuery({
+    queryKey: ["rider-profile", ride.rider_id],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("full_name").eq("user_id", ride.rider_id).maybeSingle();
+      return data;
+    },
+    enabled: !!ride.rider_id,
+    staleTime: Infinity,
+  });
   const config = statusConfig[ride.status as RideStatus];
   const StatusIcon = config.icon;
   const steps: RideStatus[] = ["requested", "accepted", "en_route", "picked_up"];
