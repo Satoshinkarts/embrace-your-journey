@@ -18,7 +18,7 @@ const roleNavItems: Record<string, NavItem[]> = {
     { label: "Book", icon: Home, path: "/dashboard" },
     { label: "Rides", icon: Clock, path: "/dashboard/rides" },
     { label: "Wallet", icon: Wallet, path: "/dashboard/wallet" },
-    { label: "Messages", icon: MessageCircle, path: "/dashboard/messages" },
+    { label: "Ratings", icon: Star, path: "/dashboard/ratings" },
   ],
   rider: [
     { label: "Home", icon: Home, path: "/dashboard" },
@@ -61,6 +61,7 @@ export default function DashboardLayout({ children, fullScreen = false }: Dashbo
   const primaryRole = roles[0] || "customer";
   const navItems = roleNavItems[primaryRole] || roleNavItems.customer;
   const [profileOpen, setProfileOpen] = useState(false);
+  const isCustomer = primaryRole === "customer";
 
   const handleSignOut = async () => {
     await signOut();
@@ -80,7 +81,7 @@ export default function DashboardLayout({ children, fullScreen = false }: Dashbo
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setProfileOpen(true)}
+            onClick={() => isCustomer ? navigate("/dashboard/profile") : setProfileOpen(true)}
             className="flex items-center justify-center rounded-full bg-primary/10 h-8 w-8 text-primary transition-colors active:bg-primary/20"
             aria-label="My Profile"
           >

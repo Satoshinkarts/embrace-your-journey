@@ -18,6 +18,7 @@ import AdminStrikes from "./pages/admin/AdminStrikes";
 
 // Customer
 import CustomerDashboard, { CustomerRides, CustomerRatings, CustomerWallet } from "./pages/customer/CustomerDashboard";
+import CustomerProfile from "./pages/customer/CustomerProfile";
 // Rider
 import RiderDashboard, { RiderTrips, RiderEarnings } from "./pages/rider/RiderDashboard";
 // Dispatcher
@@ -83,6 +84,7 @@ const AppRoutes = () => (
     <Route path="/dashboard/rides" element={<RoleGuard allowedRoles={["customer"]}><CustomerRides /></RoleGuard>} />
     <Route path="/dashboard/wallet" element={<RoleGuard allowedRoles={["customer"]}><CustomerWallet /></RoleGuard>} />
     <Route path="/dashboard/ratings" element={<RoleGuard allowedRoles={["customer"]}><CustomerRatings /></RoleGuard>} />
+    <Route path="/dashboard/profile" element={<RoleGuard allowedRoles={["customer"]}><CustomerProfile /></RoleGuard>} />
 
     {/* Rider routes */}
     <Route path="/dashboard/trips" element={<RoleGuard allowedRoles={["rider"]}><RiderTrips /></RoleGuard>} />
