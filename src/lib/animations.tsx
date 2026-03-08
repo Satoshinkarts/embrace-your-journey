@@ -61,7 +61,7 @@ export const slideRight = {
 /** Scale pop for modals, cards, floating elements */
 export const scalePop = {
   initial: { opacity: 0, scale: 0.85 },
-  animate: { opacity: 1, scale: 1, transition: { duration: 0.3, ease: [0.34, 1.56, 0.64, 1] } },
+  animate: { opacity: 1, scale: 1, transition: { duration: 0.3, ease: "backOut" as const } },
   exit: { opacity: 0, scale: 0.9, transition: { duration: 0.2 } },
 };
 
