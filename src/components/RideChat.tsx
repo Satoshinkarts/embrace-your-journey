@@ -19,6 +19,44 @@ interface RideChatProps {
   onChannelReady?: (channelId: string) => void;
 }
 
+/** Hook: typing indicator via Realtime broadcast */
+function useTypingIndicator(dmChannelId: string | null, userId: string | undefined) {
+  const [isOtherTyping, setIsOtherTyping] = useState(false);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const lastSentRef = useRef(0);
+
+  useEffect(() => {
+    if (!dmChannelId || !userId) return;
+
+    const ch = supabase.channel(`typing-${dmChannelId}`);
+    ch.on("broadcast", { event: "typing" }, (payload: any) => {
+      if (payload.payload?.user_id !== userId) {
+        setIsOtherTyping(true);
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = setTimeout(() => setIsOtherTyping(false), 3000);
+      }
+    }).subscribe();
+
+    channelRef.current = ch;
+    return () => {
+      clearTimeout(timeoutRef.current);
+      supabase.removeChannel(ch);
+      channelRef.current = null;
+    };
+  }, [dmChannelId, userId]);
+
+  const sendTyping = useCallback(() => {
+    if (!channelRef.current || !userId) return;
+    const now = Date.now();
+    if (now - lastSentRef.current < 2000) return; // throttle to every 2s
+    lastSentRef.current = now;
+    channelRef.current.send({ type: "broadcast", event: "typing", payload: { user_id: userId } });
+  }, [userId]);
+
+  return { isOtherTyping, sendTyping };
+}
+
 /** Hook: unread count for a specific DM channel */
 function useChannelUnread(dmChannelId: string | null) {
   const { user } = useAuth();
