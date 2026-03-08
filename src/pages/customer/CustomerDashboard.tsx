@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import WalletCard from "@/components/WalletCard";
 import RideRatingDialog from "@/components/RideRatingDialog";
+import { RideChatButton } from "@/components/RideChat";
 import { useToast } from "@/hooks/use-toast";
 import { calculateFare } from "@/lib/fareCalculation";
 import { useActiveZones, type Zone } from "@/hooks/useZones";
@@ -732,6 +733,17 @@ function ActiveRideCard({ ride, onCancel, cancelling, riderLocation, mapboxToken
 }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Fetch rider profile name for chat
+  const { data: riderProfile } = useQuery({
+    queryKey: ["rider-profile", ride.rider_id],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("full_name").eq("user_id", ride.rider_id).maybeSingle();
+      return data;
+    },
+    enabled: !!ride.rider_id,
+    staleTime: Infinity,
+  });
   const config = statusConfig[ride.status as RideStatus];
   const StatusIcon = config.icon;
   const steps: RideStatus[] = ["requested", "accepted", "en_route", "picked_up"];
@@ -781,11 +793,16 @@ function ActiveRideCard({ ride, onCancel, cancelling, riderLocation, mapboxToken
           <Badge className={`${config.color} border text-xs font-medium`}>
             <StatusIcon className="mr-1 h-3 w-3" />{config.label}
           </Badge>
-          {ride.status === "requested" && (
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Loader2 className="h-3 w-3 animate-spin" />Searching...
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            {ride.rider_id && ride.status !== "requested" && (
+              <RideChatButton otherUserId={ride.rider_id} otherUserName={riderProfile?.full_name || "Rider"} />
+            )}
+            {ride.status === "requested" && (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" />Searching...
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Addresses */}
