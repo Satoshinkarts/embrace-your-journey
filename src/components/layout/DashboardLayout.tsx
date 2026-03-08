@@ -61,6 +61,7 @@ export default function DashboardLayout({ children, fullScreen = false }: Dashbo
   const navItems = roleNavItems[primaryRole] || roleNavItems.customer;
   const [profileOpen, setProfileOpen] = useState(false);
   const isCustomer = primaryRole === "customer";
+  const isRider = primaryRole === "rider";
 
   const handleSignOut = async () => {
     await signOut();
