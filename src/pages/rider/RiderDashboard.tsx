@@ -399,6 +399,17 @@ function OfflineCard({ onGoOnline }: { onGoOnline: () => void }) {
 function ActiveTripCard({ ride, advanceMutation, routeInfo }: { ride: any; advanceMutation: any; routeInfo: { distanceKm: number; durationMin: number } | null }) {
   const nextStep = statusFlow.find((s) => s.from === ride.status);
 
+  // Fetch customer profile name for chat
+  const { data: customerProfile } = useQuery({
+    queryKey: ["customer-profile", ride.customer_id],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("full_name").eq("user_id", ride.customer_id).maybeSingle();
+      return data;
+    },
+    enabled: !!ride.customer_id,
+    staleTime: Infinity,
+  });
+
   return (
     <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} className="mx-4">
       <div className="glass-card p-5">
@@ -437,16 +448,21 @@ function ActiveTripCard({ ride, advanceMutation, routeInfo }: { ride: any; advan
           </div>
         )}
 
-        {nextStep && (
-          <Button
-            className="h-12 w-full text-sm font-semibold"
-            onClick={() => advanceMutation.mutate({ rideId: ride.id, newStatus: nextStep.to })}
-            disabled={advanceMutation.isPending}
-          >
-            {advanceMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <nextStep.icon className="mr-2 h-4 w-4" />}
-            {nextStep.label}
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {nextStep && (
+            <Button
+              className="h-12 flex-1 text-sm font-semibold"
+              onClick={() => advanceMutation.mutate({ rideId: ride.id, newStatus: nextStep.to })}
+              disabled={advanceMutation.isPending}
+            >
+              {advanceMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <nextStep.icon className="mr-2 h-4 w-4" />}
+              {nextStep.label}
+            </Button>
+          )}
+          {ride.customer_id && (
+            <RideChatButton otherUserId={ride.customer_id} otherUserName={customerProfile?.full_name || "Customer"} />
+          )}
+        </div>
       </div>
     </motion.div>
   );
