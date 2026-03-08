@@ -428,155 +428,153 @@ function BookRideSection() {
 
   return (
     <div className="flex h-[calc(100dvh-56px-52px)] flex-col overflow-hidden bg-background">
-      {/* ── Pickup Card (top overlay) ── */}
-      <div className="relative z-20 shrink-0 px-4 pt-3 pb-1 bg-background">
-        <AnimatePresence mode="wait">
-          {activeRide ? (
-            <ActiveRideCard
-              key="active"
-              ride={activeRide}
-              onCancel={() => cancelMutation.mutate(activeRide.id)}
-              cancelling={cancelMutation.isPending}
-              riderLocation={riderLocation}
-              mapboxToken={mapboxToken}
-            />
-          ) : (
-            <motion.div key="booking-cards" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-2">
-              {/* Pickup location card */}
-              <div className={`rounded-2xl border p-3.5 shadow-sm transition-colors ${pickupConfirmed ? "border-primary/40 bg-primary/5" : "border-border bg-card"}`}>
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-primary bg-primary/10">
-                    <div className="h-2.5 w-2.5 rounded-full bg-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] uppercase tracking-wider text-primary font-semibold">Pick-up</p>
-                    {isLocating && !pickupConfirmed ? (
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <Loader2 className="h-3 w-3 animate-spin text-primary" />
-                        <p className="text-sm text-muted-foreground">Move map to set pickup...</p>
-                      </div>
-                    ) : (
-                      <p className="truncate text-sm font-semibold text-foreground mt-0.5">{pickup || "Drag map to select"}</p>
-                    )}
-                  </div>
-                  {pickupConfirmed ? (
-                    <button onClick={resetPickup} className="shrink-0 rounded-lg bg-secondary px-2.5 py-1.5 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors">
-                      Change
-                    </button>
+      {/* ── Active ride overlay ── */}
+      {activeRide ? (
+        <div className="relative z-20 shrink-0 px-4 pt-3 pb-1 bg-background">
+          <ActiveRideCard
+            ride={activeRide}
+            onCancel={() => cancelMutation.mutate(activeRide.id)}
+            cancelling={cancelMutation.isPending}
+            riderLocation={riderLocation}
+            mapboxToken={mapboxToken}
+          />
+        </div>
+      ) : (
+        <>
+          {/* ── "Where to?" Card ── */}
+          <div className="relative z-20 shrink-0 px-4 pt-3 pb-2">
+            <div className="rounded-2xl bg-card border border-border shadow-sm p-4">
+              <p className="text-sm font-bold text-foreground mb-3">Where to?</p>
+
+              {/* Pickup row */}
+              <div className="flex items-center gap-3 mb-2">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                  <div className="h-2.5 w-2.5 rounded-full bg-primary" />
+                </div>
+                <div
+                  className="flex-1 min-w-0 rounded-full bg-secondary/60 px-4 py-2.5 cursor-pointer"
+                  onClick={pickupConfirmed ? resetPickup : undefined}
+                >
+                  {isLocating && !pickupConfirmed ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                      <span className="text-xs text-muted-foreground">Move map to set pickup...</span>
+                    </div>
                   ) : (
-                    <button
-                      onClick={confirmPickup}
-                      disabled={!pickupCoords || !pickup || pickup === "Locating address..."}
-                      className="shrink-0 flex items-center gap-1 rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-40 transition-colors active:bg-primary/80"
-                    >
-                      <Crosshair className="h-3.5 w-3.5" />
-                      Pin
-                    </button>
+                    <p className="truncate text-xs font-medium text-foreground">
+                      {pickup || "PICK UP"}
+                    </p>
                   )}
                 </div>
+                {!pickupConfirmed ? (
+                  <button
+                    onClick={confirmPickup}
+                    disabled={!pickupCoords || !pickup || pickup === "Locating address..."}
+                    className="shrink-0 flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-[11px] font-semibold text-primary-foreground disabled:opacity-40 transition-colors active:bg-primary/80"
+                  >
+                    <Crosshair className="h-3 w-3" />
+                    Pin
+                  </button>
+                ) : (
+                  <button onClick={resetPickup} className="shrink-0 text-[10px] font-medium text-primary">
+                    Change
+                  </button>
+                )}
               </div>
 
-              {/* Destination card – only show after pickup confirmed */}
-              {pickupConfirmed && (
-                <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="relative">
-                  <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3.5 shadow-sm">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-warning/20">
-                      <MapPin className="h-4 w-4 text-warning" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[10px] uppercase tracking-wider text-warning font-semibold">Destination</p>
-                      <Input
-                        value={dropoffInput}
-                        onChange={(e) => handleDropoffChange(e.target.value)}
-                        onFocus={() => { if (suggestions.length) setShowSuggestions(true); }}
-                        onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                        placeholder="Where to?"
-                        className="h-7 border-0 bg-transparent p-0 text-sm font-semibold text-foreground placeholder:text-muted-foreground/50 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none"
-                      />
-                    </div>
-                    {dropoffInput ? (
-                      <button onClick={() => { setDropoffInput(""); setDropoff(""); setDropoffCoords(null); setSuggestions([]); setRouteCoords(undefined); setRouteEstimate(null); }} className="text-muted-foreground shrink-0">
-                        <X className="h-4 w-4" />
-                      </button>
-                    ) : (
-                      <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
-                    )}
-                  </div>
+              {/* Destination row */}
+              <div className="relative flex items-center gap-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                  <MapPin className="h-4 w-4 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0 rounded-full bg-secondary/60 px-4 py-2.5">
+                  <Input
+                    value={dropoffInput}
+                    onChange={(e) => handleDropoffChange(e.target.value)}
+                    onFocus={() => { if (suggestions.length) setShowSuggestions(true); }}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                    placeholder="DESTINATION"
+                    disabled={!pickupConfirmed}
+                    className="h-auto border-0 bg-transparent p-0 text-xs font-medium text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none disabled:opacity-50"
+                  />
+                </div>
+                {dropoffInput && (
+                  <button onClick={() => { setDropoffInput(""); setDropoff(""); setDropoffCoords(null); setSuggestions([]); setRouteCoords(undefined); setRouteEstimate(null); }} className="text-muted-foreground shrink-0">
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
 
-                  {/* Suggestions dropdown */}
-                  <AnimatePresence>
-                    {showSuggestions && suggestions.length > 0 && (
-                      <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
-                        className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-xl border border-border bg-card shadow-xl max-h-64 overflow-y-auto"
+              {/* Suggestions dropdown */}
+              <AnimatePresence>
+                {showSuggestions && suggestions.length > 0 && (
+                  <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
+                    className="absolute left-0 right-0 top-full z-50 mt-1 mx-4 overflow-hidden rounded-xl border border-border bg-card shadow-xl max-h-56 overflow-y-auto"
+                  >
+                    {suggestions.map((s, i) => (
+                      <button
+                        key={i}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => selectSuggestion(s)}
+                        className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-secondary border-b border-border last:border-0"
                       >
-                        {suggestions.map((s, i) => (
-                          <button
-                            key={i}
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => selectSuggestion(s)}
-                            className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-secondary border-b border-border last:border-0"
-                          >
-                            {s.isLandmark ? (
-                              <Star className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-                            ) : (
-                              <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
-                            )}
-                            <span className="text-sm text-foreground line-clamp-2">{s.place_name}</span>
-                          </button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+                        {s.isLandmark ? (
+                          <Star className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                        ) : (
+                          <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                        )}
+                        <span className="text-xs text-foreground line-clamp-2">{s.place_name}</span>
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
 
-      {/* ── Frequent & Recent ── */}
-      {!activeRide && pickupConfirmed && !dropoffCoords && !showSuggestions && (recentAndFrequent.recent.length > 0 || recentAndFrequent.frequent.length > 0) && (
-        <div className="shrink-0 z-20 px-4 pb-1 max-h-40 overflow-y-auto">
-          {recentAndFrequent.frequent.length > 0 && (
-            <div className="mb-1.5">
-              <p className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">
-                <TrendingUp className="h-3 w-3" /> Frequent
-              </p>
-              {recentAndFrequent.frequent.map((r, i) => (
-                <button key={`freq-${i}`} onClick={() => handleRebook(r.dropoff_address, r.dropoff_lat!, r.dropoff_lng!)}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left transition-colors hover:bg-secondary mb-1"
-                >
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                    <TrendingUp className="h-3.5 w-3.5 text-primary" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-medium text-foreground">{r.dropoff_address}</p>
-                    <p className="text-[10px] text-muted-foreground">{(r as any).count} rides</p>
-                  </div>
-                  <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                </button>
-              ))}
+          {/* ── Frequent & Recent (below card, above map) ── */}
+          {pickupConfirmed && !dropoffCoords && !showSuggestions && (recentAndFrequent.recent.length > 0 || recentAndFrequent.frequent.length > 0) && (
+            <div className="shrink-0 z-20 px-4 pb-1 max-h-36 overflow-y-auto">
+              {recentAndFrequent.frequent.length > 0 && (
+                <div className="mb-1">
+                  <p className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">
+                    <TrendingUp className="h-3 w-3" /> Frequent
+                  </p>
+                  {recentAndFrequent.frequent.map((r, i) => (
+                    <button key={`freq-${i}`} onClick={() => handleRebook(r.dropoff_address, r.dropoff_lat!, r.dropoff_lng!)}
+                      className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left transition-colors hover:bg-secondary mb-0.5"
+                    >
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                        <TrendingUp className="h-3 w-3 text-primary" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[11px] font-medium text-foreground">{r.dropoff_address}</p>
+                        <p className="text-[10px] text-muted-foreground">{(r as any).count} rides</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {recentAndFrequent.recent.length > 0 && (
+                <div>
+                  <p className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">
+                    <RotateCcw className="h-3 w-3" /> Recent
+                  </p>
+                  {recentAndFrequent.recent.map((r, i) => (
+                    <button key={`rec-${i}`} onClick={() => handleRebook(r.dropoff_address, r.dropoff_lat!, r.dropoff_lng!)}
+                      className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left transition-colors hover:bg-secondary mb-0.5"
+                    >
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-secondary">
+                        <RotateCcw className="h-3 w-3 text-muted-foreground" />
+                      </div>
+                      <p className="truncate text-[11px] font-medium text-foreground min-w-0 flex-1">{r.dropoff_address}</p>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
-          {recentAndFrequent.recent.length > 0 && (
-            <div>
-              <p className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">
-                <RotateCcw className="h-3 w-3" /> Recent
-              </p>
-              {recentAndFrequent.recent.map((r, i) => (
-                <button key={`rec-${i}`} onClick={() => handleRebook(r.dropoff_address, r.dropoff_lat!, r.dropoff_lng!)}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left transition-colors hover:bg-secondary mb-1"
-                >
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-warning/10">
-                    <RotateCcw className="h-3.5 w-3.5 text-warning" />
-                  </div>
-                  <p className="truncate text-xs font-medium text-foreground min-w-0 flex-1">{r.dropoff_address}</p>
-                  <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        </>
       )}
 
       {/* ── Map ── */}
@@ -592,7 +590,6 @@ function BookRideSection() {
           routeCoords={routeCoords}
           mapRef={mapInstanceRef}
         />
-        {/* Floating map controls */}
         <MapControls mapRef={mapInstanceRef} onRecenter={handleRecenter} />
 
         {/* Route estimate floating badge */}
@@ -613,7 +610,7 @@ function BookRideSection() {
       </div>
 
       {/* ── Bottom Booking Panel ── */}
-      {!activeRide && pickupConfirmed && (
+      {!activeRide && (
         <BottomBookingPanel
           routeEstimate={routeEstimate}
           rideType={rideType}
