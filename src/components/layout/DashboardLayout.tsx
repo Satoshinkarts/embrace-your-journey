@@ -81,7 +81,7 @@ export default function DashboardLayout({ children, fullScreen = false }: Dashbo
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setProfileOpen(true)}
+            onClick={() => isCustomer ? navigate("/dashboard/profile") : setProfileOpen(true)}
             className="flex items-center justify-center rounded-full bg-primary/10 h-8 w-8 text-primary transition-colors active:bg-primary/20"
             aria-label="My Profile"
           >
