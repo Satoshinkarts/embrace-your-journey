@@ -13,7 +13,7 @@ import mapboxgl from "mapbox-gl";
 import {
   MapPin, Navigation, Clock, CheckCircle, XCircle, Loader2, X, Star,
   Wallet, Banknote, Bike, Car, Package, RotateCcw, TrendingUp, ChevronRight,
-  Crosshair,
+  Crosshair, ChevronLeft, AlertCircle, RotateCw,
 } from "lucide-react";
 import WalletCard from "@/components/WalletCard";
 import RideRatingDialog from "@/components/RideRatingDialog";
@@ -22,6 +22,7 @@ import { calculateFare } from "@/lib/fareCalculation";
 import { useActiveZones, type Zone } from "@/hooks/useZones";
 import { useRiderLocationRealtime } from "@/hooks/useRiderLocationRealtime";
 import { searchLandmarks } from "@/data/panayLandmarks";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 type RideStatus = "requested" | "accepted" | "en_route" | "picked_up" | "completed" | "cancelled";
 
@@ -30,7 +31,7 @@ const statusConfig: Record<RideStatus, { label: string; color: string; icon: Rea
   accepted: { label: "Rider accepted", color: "bg-info/10 text-info border-info/30", icon: CheckCircle },
   en_route: { label: "Rider en route", color: "bg-info/10 text-info border-info/30", icon: Navigation },
   picked_up: { label: "In transit", color: "bg-primary/10 text-primary border-primary/30", icon: Navigation },
-  completed: { label: "Completed", color: "bg-primary/10 text-primary border-primary/30", icon: CheckCircle },
+  completed: { label: "Completed", color: "bg-emerald-100 text-emerald-700 border-emerald-200", icon: CheckCircle },
   cancelled: { label: "Cancelled", color: "bg-destructive/10 text-destructive border-destructive/30", icon: XCircle },
 };
 
@@ -51,22 +52,11 @@ export function CustomerRides() {
   );
 }
 
-export function CustomerRatings() {
-  return (
-    <DashboardLayout>
-      <div>
-        <h2 className="mb-4 text-xl font-bold text-foreground">My Ratings</h2>
-        <RatingsSection />
-      </div>
-    </DashboardLayout>
-  );
-}
-
 export function CustomerWallet() {
   return (
     <DashboardLayout>
       <div>
-        <h2 className="mb-4 text-xl font-bold text-foreground">My Wallet</h2>
+        <h2 className="mb-4 text-xl font-bold text-foreground">Wallet</h2>
         <WalletCard />
       </div>
     </DashboardLayout>
@@ -342,7 +332,6 @@ function BookRideSection() {
 
   const handleRebook = useCallback((addr: string, lat: number, lng: number) => {
     if (!pickupConfirmed) {
-      // Auto-confirm pickup first
       if (pickupCoords && pickup) setPickupConfirmed(true);
     }
     setDropoffInput(addr);
@@ -383,12 +372,16 @@ function BookRideSection() {
       const { error } = await supabase
         .from("rides")
         .update({ status: "cancelled" as any, cancelled_at: new Date().toISOString(), cancel_reason: "Cancelled by customer" })
-        .eq("id", rideId);
+        .eq("id", rideId)
+        .eq("customer_id", user!.id);
       if (error) throw error;
     },
     onSuccess: () => {
       toast({ title: "Ride cancelled" });
       queryClient.invalidateQueries({ queryKey: ["active-ride"] });
+    },
+    onError: (err: any) => {
+      toast({ title: "Cancel failed", description: err.message, variant: "destructive" });
     },
   });
 
@@ -428,7 +421,6 @@ function BookRideSection() {
 
   return (
     <div className="flex h-[calc(100dvh-56px-52px)] flex-col overflow-hidden bg-background">
-      {/* ── Active ride overlay ── */}
       {activeRide ? (
         <div className="relative z-20 shrink-0 px-4 pt-3 pb-1 bg-background">
           <ActiveRideCard
@@ -441,12 +433,10 @@ function BookRideSection() {
         </div>
       ) : (
         <>
-          {/* ── "Where to?" Card ── */}
           <div className="relative z-20 shrink-0 px-4 pt-3 pb-2">
             <div className="rounded-2xl bg-card border border-border shadow-sm p-4">
               <p className="text-sm font-bold text-foreground mb-3">Where to?</p>
 
-              {/* Pickup row */}
               <div className="flex items-center gap-3 mb-2">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
                   <div className="h-2.5 w-2.5 rounded-full bg-primary" />
@@ -482,7 +472,6 @@ function BookRideSection() {
                 )}
               </div>
 
-              {/* Destination row */}
               <div className="relative flex items-center gap-3">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
                   <MapPin className="h-4 w-4 text-primary" />
@@ -505,7 +494,6 @@ function BookRideSection() {
                 )}
               </div>
 
-              {/* Suggestions dropdown */}
               <AnimatePresence>
                 {showSuggestions && suggestions.length > 0 && (
                   <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
@@ -532,7 +520,6 @@ function BookRideSection() {
             </div>
           </div>
 
-          {/* ── Frequent & Recent (below card, above map) ── */}
           {pickupConfirmed && !dropoffCoords && !showSuggestions && (recentAndFrequent.recent.length > 0 || recentAndFrequent.frequent.length > 0) && (
             <div className="shrink-0 z-20 px-4 pb-1 max-h-36 overflow-y-auto">
               {recentAndFrequent.frequent.length > 0 && (
@@ -577,7 +564,6 @@ function BookRideSection() {
         </>
       )}
 
-      {/* ── Map ── */}
       <div className="relative flex-1 min-h-0">
         <MapboxMap
           className="h-full w-full"
@@ -592,7 +578,6 @@ function BookRideSection() {
         />
         <MapControls mapRef={mapInstanceRef} onRecenter={handleRecenter} />
 
-        {/* Route estimate floating badge */}
         {routeEstimate && !activeRide && (
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
             className="absolute bottom-3 left-3 z-10 flex gap-2"
@@ -609,7 +594,6 @@ function BookRideSection() {
         )}
       </div>
 
-      {/* ── Bottom Booking Panel ── */}
       {!activeRide && (
         <BottomBookingPanel
           routeEstimate={routeEstimate}
@@ -625,7 +609,6 @@ function BookRideSection() {
         />
       )}
 
-      {/* Rating dialog */}
       {ratingRide && (
         <RideRatingDialog
           open={!!ratingRide}
@@ -742,7 +725,10 @@ function ActiveRideCard({ ride, onCancel, cancelling, riderLocation, mapboxToken
           </Button>
         )}
         {ride.status === "requested" && (
-          <Button variant="ghost" className="mt-4 w-full text-destructive hover:text-destructive hover:bg-destructive/10" onClick={onCancel} disabled={cancelling}>Cancel Ride</Button>
+          <Button variant="ghost" className="mt-4 w-full text-destructive hover:text-destructive hover:bg-destructive/10" onClick={onCancel} disabled={cancelling}>
+            {cancelling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Cancel Ride
+          </Button>
         )}
       </div>
     </motion.div>
@@ -773,7 +759,6 @@ function BottomBookingPanel({
 
   return (
     <div className="relative z-20 shrink-0 border-t border-border bg-card px-4 pt-3 pb-4 safe-bottom">
-      {/* Cash / Now row */}
       <div className="mb-3 flex gap-2">
         <button
           onClick={() => onPaymentMethodChange(paymentMethod === "cash" ? "wallet" : "cash")}
@@ -793,7 +778,6 @@ function BottomBookingPanel({
         </button>
       </div>
 
-      {/* Ride type selector */}
       <div className="mb-3 flex gap-2 justify-center">
         {rideTypes.map((rt) => {
           const active = rideType === rt.id;
@@ -812,7 +796,6 @@ function BottomBookingPanel({
         })}
       </div>
 
-      {/* Order button with fare */}
       <Button
         className="h-14 w-full text-base font-bold shadow-lg"
         onClick={onBook}
@@ -833,60 +816,12 @@ function BottomBookingPanel({
   );
 }
 
-/* ─── Ratings Section ─── */
-function RatingsSection() {
-  const { user } = useAuth();
-  const { data: ratings, isLoading } = useQuery({
-    queryKey: ["my-given-ratings", user?.id],
-    queryFn: async () => {
-      const { data: ratingsData, error: ratingsError } = await supabase.from("ratings").select("*").eq("rater_id", user!.id).order("created_at", { ascending: false });
-      if (ratingsError) throw ratingsError;
-      if (!ratingsData?.length) return [];
-      const rideIds = ratingsData.map(r => r.ride_id);
-      const { data: rides } = await supabase.from("rides").select("id, pickup_address, dropoff_address, fare, completed_at").in("id", rideIds);
-      const rideMap = new Map(rides?.map(r => [r.id, r]) || []);
-      return ratingsData.map(r => ({ ...r, ride: rideMap.get(r.ride_id) }));
-    },
-    enabled: !!user,
-  });
-
-  if (isLoading) return <LoadingSkeleton />;
-  if (!ratings?.length) return (
-    <div className="glass-card p-8 text-center">
-      <Star className="mx-auto mb-3 h-8 w-8 text-muted-foreground" /><p className="text-sm text-muted-foreground">No ratings yet</p>
-    </div>
-  );
-
-  return (
-    <div className="space-y-2.5">
-      {ratings.map((r, i) => (
-        <motion.div key={r.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="glass-card p-4">
-          {r.ride && (
-            <div className="mb-2">
-              <p className="truncate text-sm font-semibold text-foreground">{r.ride.dropoff_address}</p>
-              <p className="truncate text-xs text-muted-foreground mt-0.5"><span className="text-muted-foreground/60">→</span> {r.ride.pickup_address}</p>
-            </div>
-          )}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-0.5">
-              {Array.from({ length: r.rating }).map((_, j) => (<Star key={j} className="h-3.5 w-3.5 fill-warning text-warning" />))}
-              {Array.from({ length: 5 - r.rating }).map((_, j) => (<Star key={`e-${j}`} className="h-3.5 w-3.5 text-muted-foreground/20" />))}
-            </div>
-            <div className="text-right">
-              {r.ride?.fare && <p className="text-sm font-bold text-foreground">₱{Number(r.ride.fare).toFixed(2)}</p>}
-              <span className="text-[10px] text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</span>
-            </div>
-          </div>
-          {r.comment && <p className="mt-2 text-xs text-muted-foreground italic">"{r.comment}"</p>}
-        </motion.div>
-      ))}
-    </div>
-  );
-}
-
-/* ─── Ride History ─── */
+/* ─── Ride History (Redesigned) ─── */
 function RideHistory() {
   const { user } = useAuth();
+  const [selectedRide, setSelectedRide] = useState<any>(null);
+  const [showSupport, setShowSupport] = useState(false);
+
   const { data: rides, isLoading } = useQuery({
     queryKey: ["ride-history", user?.id],
     queryFn: async () => {
@@ -909,7 +844,170 @@ function RideHistory() {
     enabled: !!user && rideIds.length > 0,
   });
 
+  // Fetch rider profiles for completed rides
+  const riderIds = rides?.filter(r => r.rider_id).map(r => r.rider_id!) || [];
+  const { data: riderProfiles } = useQuery({
+    queryKey: ["rider-profiles", riderIds],
+    queryFn: async () => {
+      if (!riderIds.length) return [];
+      const { data } = await supabase.from("profiles").select("user_id, full_name").in("user_id", riderIds);
+      return data || [];
+    },
+    enabled: riderIds.length > 0,
+  });
+
+  // Fetch vehicles for riders
+  const { data: vehicles } = useQuery({
+    queryKey: ["rider-vehicles", riderIds],
+    queryFn: async () => {
+      if (!riderIds.length) return [];
+      const { data } = await supabase.from("vehicles").select("rider_id, vehicle_type, make, model, color, plate_number").in("rider_id", riderIds);
+      return data || [];
+    },
+    enabled: riderIds.length > 0,
+  });
+
   const ratingMap = new Map(ratings?.map(r => [r.ride_id, r]) || []);
+  const profileMap = new Map(riderProfiles?.map(p => [p.user_id, p]) || []);
+  const vehicleMap = new Map(vehicles?.map(v => [v.rider_id, v]) || []);
+
+  if (selectedRide) {
+    const config = statusConfig[selectedRide.status as RideStatus];
+    const review = ratingMap.get(selectedRide.id);
+    const riderProfile = selectedRide.rider_id ? profileMap.get(selectedRide.rider_id) : null;
+    const vehicle = selectedRide.rider_id ? vehicleMap.get(selectedRide.rider_id) : null;
+
+    return (
+      <div>
+        <div className="flex items-center gap-3 mb-6">
+          <button onClick={() => { setSelectedRide(null); setShowSupport(false); }} className="text-foreground">
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <h2 className="text-xl font-bold text-foreground">Ride History</h2>
+        </div>
+
+        {/* Ride detail card */}
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl border border-primary/20 bg-gradient-to-b from-primary/5 to-card p-5 mb-6"
+        >
+          <div className="flex justify-end mb-2">
+            <Badge className={`${config.color} border text-[10px]`}>{config.label}</Badge>
+          </div>
+
+          {/* From / To */}
+          <div className="flex items-start gap-3 mb-4">
+            <div className="flex flex-col items-center gap-1 mt-1">
+              <div className="h-3 w-3 rounded-full border-2 border-primary bg-primary/20" />
+              <div className="w-0.5 h-6 bg-border" />
+              <MapPin className="h-3.5 w-3.5 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0 space-y-3">
+              <div>
+                <p className="text-[10px] text-muted-foreground">From:</p>
+                <p className="text-sm font-medium text-foreground truncate">{selectedRide.pickup_address}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-muted-foreground">To:</p>
+                <p className="text-sm font-medium text-foreground truncate">{selectedRide.dropoff_address}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Rider info */}
+          {riderProfile && (
+            <div className="flex items-center gap-3 mb-3 py-2 border-t border-border/50">
+              <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center">
+                <Bike className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="text-[10px] text-muted-foreground">Rider: <span className="font-medium text-foreground">{riderProfile.full_name || "Unknown"}</span></p>
+                {vehicle && (
+                  <p className="text-[10px] text-muted-foreground">
+                    Motorcycle: <span className="font-medium text-foreground">{vehicle.make || ""} {vehicle.model || ""}, {vehicle.color || ""}</span>
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Vehicle plate */}
+          {vehicle?.plate_number && (
+            <div className="flex items-center gap-3 py-2 border-t border-border/50">
+              <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center">
+                <Car className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                License Plate Number: <span className="font-bold text-foreground">{vehicle.plate_number}</span>
+              </p>
+            </div>
+          )}
+
+          {/* Rating stars */}
+          <div className="flex justify-center gap-1 mt-4">
+            {review ? (
+              Array.from({ length: 5 }).map((_, j) => (
+                <Star key={j} className={`h-5 w-5 ${j < review.rating ? "fill-warning text-warning" : "text-muted-foreground/20"}`} />
+              ))
+            ) : (
+              Array.from({ length: 5 }).map((_, j) => (
+                <Star key={j} className="h-5 w-5 text-muted-foreground/20" />
+              ))
+            )}
+          </div>
+        </motion.div>
+
+        {/* Repeat Order button */}
+        {selectedRide.dropoff_lat && selectedRide.dropoff_lng && (
+          <Button className="w-full h-12 rounded-full text-base font-bold mb-4" onClick={() => {
+            setSelectedRide(null);
+            // Navigate to book tab would happen via the parent
+          }}>
+            <RotateCw className="mr-2 h-4 w-4" />
+            Repeat Order
+          </Button>
+        )}
+
+        {/* Support button */}
+        <div className="flex flex-col items-center">
+          <button onClick={() => setShowSupport(!showSupport)} className="flex flex-col items-center gap-1 text-muted-foreground hover:text-foreground transition-colors">
+            <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center">
+              <AlertCircle className="h-5 w-5" />
+            </div>
+            <span className="text-xs font-medium">Support</span>
+          </button>
+        </div>
+
+        {/* Support bottom sheet */}
+        <AnimatePresence>
+          {showSupport && (
+            <motion.div
+              initial={{ opacity: 0, y: 100 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 100 }}
+              className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl bg-gradient-to-b from-primary/10 to-card border-t border-primary/20 shadow-2xl pb-20"
+            >
+              <div className="flex justify-center pt-3 pb-2">
+                <div className="h-1 w-10 rounded-full bg-border" />
+              </div>
+              <h3 className="px-5 pb-3 text-base font-bold text-foreground">Support</h3>
+              <div className="px-5 space-y-1">
+                {["Payment Issue", "Long Wait", "Lost and Found", "Feedback", "Cooperative Building", "Editing Personal Data", "Other Issue"].map((item) => (
+                  <button
+                    key={item}
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-secondary"
+                    onClick={() => setShowSupport(false)}
+                  >
+                    <Star className="h-4 w-4 text-primary shrink-0" />
+                    <span className="text-sm font-medium text-foreground">{item}</span>
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -921,21 +1019,33 @@ function RideHistory() {
           {rides.map((ride, i) => {
             const config = statusConfig[ride.status as RideStatus];
             const review = ratingMap.get(ride.id);
+            const riderProfile = ride.rider_id ? profileMap.get(ride.rider_id) : null;
             return (
-              <motion.div key={ride.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }} className="glass-card p-4">
-                <div className="flex items-start justify-between gap-3">
+              <motion.div key={ride.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                className="rounded-2xl border border-border bg-card p-4 cursor-pointer active:scale-[0.98] transition-transform"
+                onClick={() => setSelectedRide(ride)}
+              >
+                <div className="flex items-start justify-between gap-3 mb-2">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-foreground">{ride.dropoff_address}</p>
-                    <p className="truncate text-xs text-muted-foreground mt-0.5"><span className="text-muted-foreground/60">→</span> {ride.pickup_address}</p>
-                    <p className="mt-1.5 text-[10px] text-muted-foreground">{new Date(ride.created_at).toLocaleDateString()} · {new Date(ride.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                    <p className="truncate text-sm font-semibold text-foreground">{ride.pickup_address}</p>
+                    {riderProfile && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        <Bike className="inline h-3 w-3 mr-1" />
+                        Rider: {riderProfile.full_name || "Unknown"}
+                      </p>
+                    )}
+                    <p className="mt-1 text-[10px] text-muted-foreground">
+                      {new Date(ride.created_at).toLocaleDateString()} · {new Date(ride.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
                   </div>
                   <div className="shrink-0 text-right space-y-1.5">
                     <Badge className={`${config.color} border text-[10px]`}>{config.label}</Badge>
                     {ride.fare && <p className="text-sm font-bold text-foreground">₱{Number(ride.fare).toFixed(2)}</p>}
                   </div>
                 </div>
+
                 {ride.status === "completed" && review && (
-                  <div className="mt-3 space-y-1">
+                  <div className="space-y-1">
                     <div className="flex items-center gap-0.5">
                       {Array.from({ length: review.rating }).map((_, j) => (<Star key={j} className="h-3.5 w-3.5 fill-warning text-warning" />))}
                       {Array.from({ length: 5 - review.rating }).map((_, j) => (<Star key={j} className="h-3.5 w-3.5 text-muted-foreground/20" />))}
@@ -944,7 +1054,10 @@ function RideHistory() {
                   </div>
                 )}
                 {ride.status === "completed" && !review && (
-                  <p className="mt-2.5 text-[10px] text-muted-foreground/50 italic">No reviews available</p>
+                  <p className="text-[10px] text-muted-foreground/50 italic">No reviews available</p>
+                )}
+                {ride.status === "cancelled" && (
+                  <p className="text-[10px] text-muted-foreground/50 italic">No reviews available</p>
                 )}
               </motion.div>
             );

@@ -17,9 +17,10 @@ import AdminKPI from "./pages/admin/AdminKPI";
 import AdminStrikes from "./pages/admin/AdminStrikes";
 
 // Customer
-import CustomerDashboard, { CustomerRides, CustomerRatings, CustomerWallet } from "./pages/customer/CustomerDashboard";
+import CustomerDashboard, { CustomerRides, CustomerWallet } from "./pages/customer/CustomerDashboard";
 import CustomerProfile from "./pages/customer/CustomerProfile";
 import CustomerSupport from "./pages/customer/CustomerSupport";
+import CustomerMessages from "./pages/customer/CustomerMessages";
 // Rider
 import RiderDashboard, { RiderTrips, RiderEarnings } from "./pages/rider/RiderDashboard";
 // Dispatcher
@@ -84,7 +85,7 @@ const AppRoutes = () => (
     {/* Customer routes */}
     <Route path="/dashboard/rides" element={<RoleGuard allowedRoles={["customer"]}><CustomerRides /></RoleGuard>} />
     <Route path="/dashboard/wallet" element={<RoleGuard allowedRoles={["customer"]}><CustomerWallet /></RoleGuard>} />
-    <Route path="/dashboard/ratings" element={<RoleGuard allowedRoles={["customer"]}><CustomerRatings /></RoleGuard>} />
+    <Route path="/dashboard/messages" element={<RoleGuard allowedRoles={["customer"]}><CustomerMessages /></RoleGuard>} />
     <Route path="/dashboard/profile" element={<RoleGuard allowedRoles={["customer"]}><CustomerProfile /></RoleGuard>} />
     <Route path="/dashboard/support" element={<RoleGuard allowedRoles={["customer"]}><CustomerSupport /></RoleGuard>} />
 

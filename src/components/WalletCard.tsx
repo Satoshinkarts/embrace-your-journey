@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Wallet, CreditCard, ArrowUpRight, ArrowDownRight, History, ChevronDown, ChevronUp } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { useWallet, useWalletTransactions } from "@/hooks/useWallet";
 
 const categoryIcons: Record<string, { icon: typeof ArrowUpRight; color: string }> = {
@@ -18,35 +17,35 @@ export default function WalletCard() {
   const [showHistory, setShowHistory] = useState(false);
 
   if (isLoading) {
-    return <div className="glass-card h-24 animate-pulse bg-secondary/50" />;
+    return <div className="h-40 animate-pulse rounded-2xl bg-secondary/50" />;
   }
 
   const balance = wallet?.balance ?? 0;
 
   return (
-    <div className="space-y-2.5">
-      {/* Balance Card */}
+    <div className="space-y-3">
+      {/* Teal gradient wallet card */}
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="glass-card p-5"
+        className="rounded-2xl p-6"
+        style={{
+          background: "linear-gradient(135deg, hsl(170 40% 65%), hsl(185 35% 55%))",
+        }}
       >
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
-              <Wallet className="h-4 w-4 text-primary" />
-            </div>
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Wallet Balance</p>
+        <div className="flex items-center gap-2 mb-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/20">
+            <Wallet className="h-4 w-4 text-white" />
           </div>
+          <p className="text-[10px] uppercase tracking-widest text-white/80 font-bold">Wallet Balance</p>
         </div>
-        <p className="text-2xl font-bold text-foreground">
-          ₱{Number(balance).toLocaleString("en-PH", { minimumFractionDigits: 2 })}
+        <p className="text-3xl font-bold text-white">
+          ₱ {Number(balance).toLocaleString("en-PH", { minimumFractionDigits: 2 })}
         </p>
 
-        {/* Toggle history */}
         <button
           onClick={() => setShowHistory(!showHistory)}
-          className="mt-3 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          className="mt-4 flex items-center gap-1 text-xs text-white/70 hover:text-white transition-colors"
         >
           <History className="h-3 w-3" />
           Transaction History
@@ -64,7 +63,7 @@ export default function WalletCard() {
             className="space-y-1.5 overflow-hidden"
           >
             {!transactions?.length ? (
-              <div className="glass-card p-4 text-center">
+              <div className="rounded-2xl border border-border bg-card p-4 text-center">
                 <p className="text-xs text-muted-foreground">No transactions yet</p>
               </div>
             ) : (
@@ -79,7 +78,7 @@ export default function WalletCard() {
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.03 }}
-                    className="glass-card px-4 py-3 flex items-center justify-between"
+                    className="rounded-xl border border-border bg-card px-4 py-3 flex items-center justify-between"
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
                       <Icon className={`h-4 w-4 shrink-0 ${cat.color}`} />
