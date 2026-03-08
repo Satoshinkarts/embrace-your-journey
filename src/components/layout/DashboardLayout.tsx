@@ -6,6 +6,7 @@ import habalLogo from "@/assets/habal-logo.png";
 import {
   Bike, LogOut, Home, MapPin, Clock, DollarSign, Users,
   Navigation, Settings, Shield, BarChart3, Car, UserCheck, Star, User, Wallet,
+  MessageCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserProfileSheet } from "@/components/UserProfile";
@@ -14,10 +15,10 @@ type NavItem = { label: string; icon: React.ElementType; path: string };
 
 const roleNavItems: Record<string, NavItem[]> = {
   customer: [
-    { label: "Home", icon: Home, path: "/dashboard" },
-    { label: "Activity", icon: Clock, path: "/dashboard/rides" },
+    { label: "Book", icon: Home, path: "/dashboard" },
+    { label: "Rides", icon: Clock, path: "/dashboard/rides" },
     { label: "Wallet", icon: Wallet, path: "/dashboard/wallet" },
-    { label: "Profile", icon: User, path: "/dashboard/ratings" },
+    { label: "Messages", icon: MessageCircle, path: "/dashboard/messages" },
   ],
   rider: [
     { label: "Home", icon: Home, path: "/dashboard" },
