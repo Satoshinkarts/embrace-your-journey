@@ -19,6 +19,7 @@ import AdminStrikes from "./pages/admin/AdminStrikes";
 // Customer
 import CustomerDashboard, { CustomerRides, CustomerRatings, CustomerWallet } from "./pages/customer/CustomerDashboard";
 import CustomerProfile from "./pages/customer/CustomerProfile";
+import CustomerSupport from "./pages/customer/CustomerSupport";
 // Rider
 import RiderDashboard, { RiderTrips, RiderEarnings } from "./pages/rider/RiderDashboard";
 // Dispatcher
