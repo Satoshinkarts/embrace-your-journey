@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import WalletCard from "@/components/WalletCard";
 import RideRatingDialog from "@/components/RideRatingDialog";
+import { RideChatButton } from "@/components/RideChat";
 import { useToast } from "@/hooks/use-toast";
 import { calculateFare } from "@/lib/fareCalculation";
 import { useActiveZones, type Zone } from "@/hooks/useZones";
