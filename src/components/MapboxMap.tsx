@@ -115,15 +115,15 @@ export default function MapboxMap({
       });
     });
 
-    // Center change callback for center-pin mode
-    if (onCenterChange) {
-      map.current.on("moveend", () => {
-        const c = map.current?.getCenter();
-        if (c) onCenterChange(c.lng, c.lat);
-      });
-    }
+    // Center change callback for center-pin mode (uses ref to avoid stale closure)
+    map.current.on("moveend", () => {
+      const cb = onCenterChangeRef.current;
+      if (!cb) return;
+      const c = map.current?.getCenter();
+      if (c) cb(c.lng, c.lat);
+    });
 
-    if (showGeolocate && onGeolocate) {
+    if (showGeolocate) {
       const geoCtrl = new mapboxgl.GeolocateControl({
         positionOptions: { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
         trackUserLocation: true,
@@ -133,7 +133,8 @@ export default function MapboxMap({
       map.current.addControl(geoCtrl, "top-right");
 
       geoCtrl.on("geolocate", (e: any) => {
-        onGeolocate(e.coords.longitude, e.coords.latitude);
+        const cb = onGeolocateRef.current;
+        if (cb) cb(e.coords.longitude, e.coords.latitude);
         if (!geoFired.current) {
           geoFired.current = true;
         }
@@ -144,11 +145,10 @@ export default function MapboxMap({
       });
     }
 
-    if (onMapClick) {
-      map.current.on("click", (e) => {
-        onMapClick(e.lngLat.lng, e.lngLat.lat);
-      });
-    }
+    map.current.on("click", (e) => {
+      const cb = onMapClickRef.current;
+      if (cb) cb(e.lngLat.lng, e.lngLat.lat);
+    });
 
     return () => {
       map.current?.remove();
