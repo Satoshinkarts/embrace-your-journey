@@ -33,6 +33,7 @@ export interface DispatchDirective {
  * Also sets the rider as "online" when active, "offline" on unmount.
  */
 export function useRiderLocationTracker(intervalMs = 10000) {
+  // intervalMs = 0 means disabled (offline)
   const { user } = useAuth();
   const watchIdRef = useRef<number | null>(null);
   const latestPos = useRef<{ lat: number; lng: number; heading: number | null; speed: number | null } | null>(null);
