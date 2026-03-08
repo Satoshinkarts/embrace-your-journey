@@ -271,8 +271,8 @@ export default function MapboxMap({
   }
 
   return (
-    <div className={`relative ${className}`}>
-      <div ref={mapContainer} className="h-full w-full" />
+    <div className={`relative h-full w-full ${className}`}>
+      <div ref={mapContainer} className="absolute inset-0" />
       {/* Center pin overlay */}
       {showCenterPin && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
