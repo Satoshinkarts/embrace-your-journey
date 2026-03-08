@@ -14,7 +14,6 @@ import {
   Edit3, Check, Camera, Loader2, Circle, ChevronLeft,
 } from "lucide-react";
 import { useRef } from "react";
-import { slideUp, staggerContainer, staggerItem, scalePop, pressAnimation } from "@/lib/animations";
 
 const statusColors: Record<string, string> = {
   online: "bg-emerald-500",
@@ -22,6 +21,8 @@ const statusColors: Record<string, string> = {
   busy: "bg-destructive",
   offline: "bg-muted-foreground",
 };
+
+const springTransition = { type: "spring" as const, stiffness: 400, damping: 17 };
 
 export default function RiderProfile() {
   return (
@@ -58,11 +59,23 @@ function RiderProfileContent() {
   return (
     <AnimatePresence mode="wait">
       {editing ? (
-        <motion.div key="edit" {...slideUp}>
+        <motion.div
+          key="edit"
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 40 }}
+          transition={{ duration: 0.35, ease: "easeOut" }}
+        >
           <EditRiderProfile profile={profile} onDone={() => setEditing(false)} />
         </motion.div>
       ) : (
-        <motion.div key="view" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+        <motion.div
+          key="view"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.25 }}
+        >
           <ViewRiderProfile profile={profile} onEdit={() => setEditing(true)} />
         </motion.div>
       )}
@@ -85,11 +98,17 @@ function ViewRiderProfile({ profile, onEdit }: { profile: UserProfileData; onEdi
       <h2 className="text-xl font-bold text-foreground">My Profile</h2>
 
       {/* Avatar + Info Card */}
-      <motion.div {...scalePop} className="glass-card p-5">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.35, ease: "backOut" }}
+        className="glass-card p-5"
+      >
         <div className="flex items-center gap-4">
           <div className="relative">
             <motion.div
               whileHover={{ scale: 1.05 }}
+              transition={springTransition}
               className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 overflow-hidden"
             >
               {profile.avatar_url ? (
@@ -136,7 +155,7 @@ function ViewRiderProfile({ profile, onEdit }: { profile: UserProfileData; onEdi
       </motion.div>
 
       {/* Edit button */}
-      <motion.div {...pressAnimation}>
+      <motion.div whileTap={{ scale: 0.97 }} whileHover={{ scale: 1.01 }} transition={springTransition}>
         <Button variant="outline" className="w-full rounded-xl gap-2" onClick={onEdit}>
           <Edit3 className="h-4 w-4" />
           Edit Profile
@@ -144,17 +163,14 @@ function ViewRiderProfile({ profile, onEdit }: { profile: UserProfileData; onEdi
       </motion.div>
 
       {/* Stats grid */}
-      <motion.div
-        variants={staggerContainer}
-        initial="initial"
-        animate="animate"
-        className="grid grid-cols-2 gap-2.5"
-      >
+      <div className="grid grid-cols-2 gap-2.5">
         {statCards.map((s, i) => (
           <motion.div
             key={s.label}
-            variants={staggerItem}
-            whileHover={{ y: -2, transition: { duration: 0.2 } }}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 + i * 0.06, duration: 0.35, ease: "easeOut" }}
+            whileHover={{ y: -2 }}
             className="glass-card p-3.5 text-center"
           >
             <s.icon className="mx-auto h-4 w-4 text-primary mb-1.5" />
@@ -162,7 +178,7 @@ function ViewRiderProfile({ profile, onEdit }: { profile: UserProfileData; onEdi
             <p className="text-[10px] text-muted-foreground">{s.label}</p>
           </motion.div>
         ))}
-      </motion.div>
+      </div>
     </div>
   );
 }
@@ -221,7 +237,12 @@ function EditRiderProfile({ profile, onDone }: { profile: UserProfileData; onDon
       </div>
 
       {/* Avatar */}
-      <motion.div {...scalePop} className="flex flex-col items-center">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3, ease: "backOut" }}
+        className="flex flex-col items-center"
+      >
         <div className="relative">
           <div className="h-24 w-24 rounded-2xl bg-primary/10 flex items-center justify-center overflow-hidden">
             {profile.avatar_url ? (
@@ -233,7 +254,8 @@ function EditRiderProfile({ profile, onDone }: { profile: UserProfileData; onDon
             )}
           </div>
           <motion.button
-            {...pressAnimation}
+            whileTap={{ scale: 0.9 }}
+            transition={springTransition}
             onClick={() => fileInputRef.current?.click()}
             className="absolute -bottom-2 -right-2 h-8 w-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-lg"
             disabled={uploading}
@@ -252,6 +274,7 @@ function EditRiderProfile({ profile, onDone }: { profile: UserProfileData; onDon
             <motion.button
               key={s}
               whileTap={{ scale: 0.95 }}
+              transition={springTransition}
               onClick={() => setStatusType(s)}
               className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs capitalize transition-colors ${
                 statusType === s ? "bg-secondary ring-1 ring-primary text-foreground" : "bg-secondary/50 text-muted-foreground"
@@ -285,7 +308,7 @@ function EditRiderProfile({ profile, onDone }: { profile: UserProfileData; onDon
         <Textarea value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Tell us about yourself..." className="rounded-xl bg-secondary border-border resize-none" rows={3} />
       </div>
 
-      <motion.div {...pressAnimation}>
+      <motion.div whileTap={{ scale: 0.97 }} transition={springTransition}>
         <Button className="w-full rounded-xl h-11" onClick={handleSave} disabled={updateProfile.isPending}>
           {updateProfile.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
           Save Changes
