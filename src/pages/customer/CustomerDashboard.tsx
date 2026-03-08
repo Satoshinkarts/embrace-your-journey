@@ -772,56 +772,47 @@ function BottomBookingPanel({
   ];
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 40 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="relative z-20 shrink-0 border-t border-border bg-card px-4 pt-3 pb-4 safe-bottom"
-    >
-      {/* Ride type selector */}
-      <div className="mb-3 flex gap-2">
-        {rideTypes.map((rt) => {
-          const active = rideType === rt.id;
-          return (
-            <button
-              key={rt.id}
-              onClick={() => onRideTypeChange(rt.id)}
-              className={`flex flex-1 flex-col items-center gap-1 rounded-2xl border-2 px-2 py-2.5 transition-all ${
-                active ? "border-primary bg-primary/5" : "border-transparent bg-secondary"
-              }`}
-            >
-              <rt.icon className={`h-5 w-5 ${active ? "text-primary" : "text-muted-foreground"}`} />
-              <span className={`text-[11px] font-semibold ${active ? "text-primary" : "text-muted-foreground"}`}>{rt.label}</span>
-              {active && routeEstimate && (
-                <span className="text-[10px] text-primary font-bold">₱{routeEstimate.fare.toFixed(0)}</span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Payment + Schedule row */}
+    <div className="relative z-20 shrink-0 border-t border-border bg-card px-4 pt-3 pb-4 safe-bottom">
+      {/* Cash / Now row */}
       <div className="mb-3 flex gap-2">
         <button
           onClick={() => onPaymentMethodChange(paymentMethod === "cash" ? "wallet" : "cash")}
-          className="flex flex-1 items-center gap-2 rounded-xl bg-secondary px-3 py-2.5"
+          className="flex flex-1 items-center justify-center gap-2 rounded-full bg-secondary px-4 py-2.5"
         >
           {paymentMethod === "cash" ? <Banknote className="h-4 w-4 text-muted-foreground" /> : <Wallet className="h-4 w-4 text-primary" />}
           <span className="text-sm font-medium text-foreground capitalize">{paymentMethod}</span>
         </button>
         <button
           onClick={() => onScheduleModeChange(scheduleMode === "now" ? "scheduled" : "now")}
-          className={`flex flex-1 items-center gap-2 rounded-xl px-3 py-2.5 transition-colors ${
-            scheduleMode === "scheduled" ? "bg-accent/10 border border-accent/30" : "bg-secondary"
-          }`}
+          className="flex flex-1 items-center justify-center gap-2 rounded-full bg-secondary px-4 py-2.5"
         >
-          <Clock className={`h-4 w-4 ${scheduleMode === "scheduled" ? "text-accent" : "text-muted-foreground"}`} />
-          <span className={`text-sm font-medium ${scheduleMode === "scheduled" ? "text-accent" : "text-foreground"}`}>
+          <Clock className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-foreground">
             {scheduleMode === "now" ? "Now" : "Scheduled"}
           </span>
         </button>
       </div>
 
-      {/* Order button */}
+      {/* Ride type selector */}
+      <div className="mb-3 flex gap-2 justify-center">
+        {rideTypes.map((rt) => {
+          const active = rideType === rt.id;
+          return (
+            <button
+              key={rt.id}
+              onClick={() => onRideTypeChange(rt.id)}
+              className={`flex flex-1 flex-col items-center gap-1 rounded-2xl border px-3 py-3 transition-all ${
+                active ? "border-primary/30 bg-primary/5" : "border-transparent bg-secondary/60"
+              }`}
+            >
+              <rt.icon className={`h-6 w-6 ${active ? "text-primary" : "text-muted-foreground"}`} />
+              <span className={`text-[11px] font-semibold ${active ? "text-primary" : "text-muted-foreground"}`}>{rt.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Order button with fare */}
       <Button
         className="h-14 w-full text-base font-bold shadow-lg"
         onClick={onBook}
@@ -832,13 +823,13 @@ function BottomBookingPanel({
         ) : (
           <div className="flex w-full items-center justify-between px-2">
             <span className="text-lg font-bold">
-              {routeEstimate ? `₱${routeEstimate.fare.toFixed(0)}` : "—"}
+              ₱ {routeEstimate ? routeEstimate.fare.toFixed(0) : "—"}
             </span>
             <span className="text-base font-bold">Order</span>
           </div>
         )}
       </Button>
-    </motion.div>
+    </div>
   );
 }
 
