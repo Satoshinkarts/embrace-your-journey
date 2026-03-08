@@ -18,7 +18,7 @@ const roleNavItems: Record<string, NavItem[]> = {
     { label: "Book", icon: Home, path: "/dashboard" },
     { label: "Rides", icon: Clock, path: "/dashboard/rides" },
     { label: "Wallet", icon: Wallet, path: "/dashboard/wallet" },
-    { label: "Messages", icon: MessageCircle, path: "/dashboard/messages" },
+    { label: "Ratings", icon: Star, path: "/dashboard/ratings" },
   ],
   rider: [
     { label: "Home", icon: Home, path: "/dashboard" },
