@@ -17,9 +17,10 @@ import AdminKPI from "./pages/admin/AdminKPI";
 import AdminStrikes from "./pages/admin/AdminStrikes";
 
 // Customer
-import CustomerDashboard, { CustomerRides, CustomerRatings, CustomerWallet } from "./pages/customer/CustomerDashboard";
+import CustomerDashboard, { CustomerRides, CustomerWallet } from "./pages/customer/CustomerDashboard";
 import CustomerProfile from "./pages/customer/CustomerProfile";
 import CustomerSupport from "./pages/customer/CustomerSupport";
+import CustomerMessages from "./pages/customer/CustomerMessages";
 // Rider
 import RiderDashboard, { RiderTrips, RiderEarnings } from "./pages/rider/RiderDashboard";
 // Dispatcher
