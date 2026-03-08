@@ -47,6 +47,14 @@ export default function MapboxMap({
   const geoFired = useRef(false);
   const { data: token, isLoading } = useMapboxToken();
 
+  // Keep latest callback refs to avoid stale closures in map event listeners
+  const onCenterChangeRef = useRef(onCenterChange);
+  const onMapClickRef = useRef(onMapClick);
+  const onGeolocateRef = useRef(onGeolocate);
+  useEffect(() => { onCenterChangeRef.current = onCenterChange; }, [onCenterChange]);
+  useEffect(() => { onMapClickRef.current = onMapClick; }, [onMapClick]);
+  useEffect(() => { onGeolocateRef.current = onGeolocate; }, [onGeolocate]);
+
   // Expose map instance
   useEffect(() => {
     if (mapRef) mapRef.current = map.current;
