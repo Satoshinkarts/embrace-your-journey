@@ -107,6 +107,7 @@ function ProfilePage() {
 
 /* ── Profile Tab ── */
 function ProfileTab({ profile, onSignOut }: { profile: any; onSignOut: () => void }) {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
   const updateProfile = useUpdateProfile();
@@ -214,7 +215,7 @@ function ProfileTab({ profile, onSignOut }: { profile: any; onSignOut: () => voi
         <button className="flex items-center gap-2 text-sm text-foreground font-medium">
           <Settings className="h-4 w-4" /> Settings
         </button>
-        <button className="flex items-center gap-2 text-sm text-foreground font-medium">
+        <button onClick={() => navigate("/dashboard/support")} className="flex items-center gap-2 text-sm text-foreground font-medium">
           <HelpCircle className="h-4 w-4" /> Support
         </button>
       </div>
