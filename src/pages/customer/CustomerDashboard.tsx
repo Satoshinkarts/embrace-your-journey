@@ -253,13 +253,13 @@ function BookRideSection() {
   const fetchSuggestions = useCallback(async (query: string) => {
     if (!mapboxToken || query.length < 2) { setSuggestions([]); return; }
     try {
-      const localMatches = searchLandmarks(query, 4).map((lm) => ({
-        place_name: lm.name,
+      const localMatches = searchLandmarks(query, 5).map((lm) => ({
+        place_name: lm.context ? `${lm.name}, ${lm.context}` : lm.name,
         center: [lm.lng, lm.lat] as [number, number],
         isLandmark: true,
       }));
       const res = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${mapboxToken}&limit=6&types=address,poi,place,locality,neighborhood,district&country=PH&bbox=121.8,10.4,123.2,12.0&proximity=122.5654,10.7202&language=en`
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${mapboxToken}&limit=5&types=address,poi,place,locality,neighborhood,district&country=PH&bbox=121.8,10.4,123.2,12.0&proximity=122.5654,10.7202&language=en`
       );
       const data = await res.json();
       const mapboxResults = (data.features || []).map((f: any) => ({
@@ -267,7 +267,8 @@ function BookRideSection() {
         center: f.center,
         isLandmark: false,
       }));
-      const localNames = new Set(localMatches.map((l) => l.place_name.toLowerCase()));
+      // Deduplicate: remove Mapbox results that overlap with local landmarks
+      const localNames = new Set(localMatches.map((l) => l.place_name.split(",")[0].trim().toLowerCase()));
       const filtered = mapboxResults.filter(
         (r: any) => !localNames.has(r.place_name.split(",")[0].trim().toLowerCase())
       );
