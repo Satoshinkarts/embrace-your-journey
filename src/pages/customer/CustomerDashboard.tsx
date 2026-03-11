@@ -206,21 +206,21 @@ function BookRideSection() {
 
   // Center pin: reverse geocode on map move
   const handleCenterChange = useCallback(async (lng: number, lat: number) => {
-    if (pickupConfirmed || activeRide) return;
+    if (pickupConfirmed || activeRide || pickupEditing) return;
     setPickupCoords([lng, lat]);
-    // Only update GPS status on first interaction
     if (gpsStatus === "detecting" || gpsStatus === "failed") {
       setGpsStatus("success");
     }
     if (mapboxToken) {
       const addr = await reverseGeocode(lng, lat, mapboxToken);
       setPickup(addr);
+      setPickupInput(addr);
       if (zones?.length) {
         const found = zones.find(z => addr.toLowerCase().includes(z.name.toLowerCase()));
         setMatchedZone(found || null);
       }
     }
-  }, [mapboxToken, pickupConfirmed, activeRide, zones, gpsStatus]);
+  }, [mapboxToken, pickupConfirmed, activeRide, zones, gpsStatus, pickupEditing]);
 
   // GPS auto-detect
   const handleGeolocate = useCallback(async (lng: number, lat: number) => {
