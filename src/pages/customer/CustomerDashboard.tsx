@@ -22,7 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { calculateFare } from "@/lib/fareCalculation";
 import { useActiveZones, type Zone } from "@/hooks/useZones";
 import { useRiderLocationRealtime } from "@/hooks/useRiderLocationRealtime";
-import { searchLandmarks } from "@/data/panayLandmarks";
+import { searchLandmarks, nearestLandmark } from "@/data/panayLandmarks";
 
 type RideStatus = "requested" | "accepted" | "en_route" | "picked_up" | "completed" | "cancelled";
 
@@ -65,6 +65,11 @@ export function CustomerWallet() {
 
 /* ─── Helpers ─── */
 async function reverseGeocode(lng: number, lat: number, token: string): Promise<string> {
+  // Check for nearby curated landmark first (within 200m)
+  const nearby = nearestLandmark(lng, lat, 0.2, ["mall", "transport", "university", "hospital", "subdivision", "government"]);
+  if (nearby) {
+    return nearby.context ? `${nearby.name}, ${nearby.context}` : nearby.name;
+  }
   try {
     const res = await fetch(
       `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${token}&limit=1&types=address,poi,place,locality,neighborhood&language=en&country=PH`
@@ -248,13 +253,13 @@ function BookRideSection() {
   const fetchSuggestions = useCallback(async (query: string) => {
     if (!mapboxToken || query.length < 2) { setSuggestions([]); return; }
     try {
-      const localMatches = searchLandmarks(query, 4).map((lm) => ({
-        place_name: lm.name,
+      const localMatches = searchLandmarks(query, 5).map((lm) => ({
+        place_name: lm.context ? `${lm.name}, ${lm.context}` : lm.name,
         center: [lm.lng, lm.lat] as [number, number],
         isLandmark: true,
       }));
       const res = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${mapboxToken}&limit=6&types=address,poi,place,locality,neighborhood,district&country=PH&bbox=121.8,10.4,123.2,12.0&proximity=122.5654,10.7202&language=en`
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${mapboxToken}&limit=5&types=address,poi,place,locality,neighborhood,district&country=PH&bbox=121.8,10.4,123.2,12.0&proximity=122.5654,10.7202&language=en`
       );
       const data = await res.json();
       const mapboxResults = (data.features || []).map((f: any) => ({
@@ -262,7 +267,8 @@ function BookRideSection() {
         center: f.center,
         isLandmark: false,
       }));
-      const localNames = new Set(localMatches.map((l) => l.place_name.toLowerCase()));
+      // Deduplicate: remove Mapbox results that overlap with local landmarks
+      const localNames = new Set(localMatches.map((l) => l.place_name.split(",")[0].trim().toLowerCase()));
       const filtered = mapboxResults.filter(
         (r: any) => !localNames.has(r.place_name.split(",")[0].trim().toLowerCase())
       );
