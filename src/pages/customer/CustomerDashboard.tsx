@@ -91,8 +91,10 @@ function BookRideSection() {
 
   // Location state
   const [pickup, setPickup] = useState("");
+  const [pickupInput, setPickupInput] = useState("");
   const [pickupCoords, setPickupCoords] = useState<[number, number] | null>(null);
   const [pickupConfirmed, setPickupConfirmed] = useState(false);
+  const [pickupEditing, setPickupEditing] = useState(false);
   const [gpsStatus, setGpsStatus] = useState<"detecting" | "success" | "failed" | "idle">("detecting");
 
   const [dropoff, setDropoff] = useState("");
@@ -104,9 +106,13 @@ function BookRideSection() {
   const [matchedZone, setMatchedZone] = useState<Zone | null>(null);
 
   // Search
-  const [suggestions, setSuggestions] = useState<Array<{ place_name: string; center: [number, number]; isLandmark?: boolean }>>([]);
+  type SearchSuggestion = { place_name: string; center: [number, number]; isLandmark?: boolean };
+  const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [pickupSuggestions, setPickupSuggestions] = useState<SearchSuggestion[]>([]);
+  const [showPickupSuggestions, setShowPickupSuggestions] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pickupDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const gpsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Ride type
@@ -200,21 +206,21 @@ function BookRideSection() {
 
   // Center pin: reverse geocode on map move
   const handleCenterChange = useCallback(async (lng: number, lat: number) => {
-    if (pickupConfirmed || activeRide) return;
+    if (pickupConfirmed || activeRide || pickupEditing) return;
     setPickupCoords([lng, lat]);
-    // Only update GPS status on first interaction
     if (gpsStatus === "detecting" || gpsStatus === "failed") {
       setGpsStatus("success");
     }
     if (mapboxToken) {
       const addr = await reverseGeocode(lng, lat, mapboxToken);
       setPickup(addr);
+      setPickupInput(addr);
       if (zones?.length) {
         const found = zones.find(z => addr.toLowerCase().includes(z.name.toLowerCase()));
         setMatchedZone(found || null);
       }
     }
-  }, [mapboxToken, pickupConfirmed, activeRide, zones, gpsStatus]);
+  }, [mapboxToken, pickupConfirmed, activeRide, zones, gpsStatus, pickupEditing]);
 
   // GPS auto-detect
   const handleGeolocate = useCallback(async (lng: number, lat: number) => {
@@ -225,6 +231,7 @@ function BookRideSection() {
     if (mapboxToken) {
       const addr = await reverseGeocode(lng, lat, mapboxToken);
       setPickup(addr);
+      setPickupInput(addr);
       if (zones?.length) {
         const found = zones.find(z => addr.toLowerCase().includes(z.name.toLowerCase()));
         setMatchedZone(found || null);
@@ -241,6 +248,7 @@ function BookRideSection() {
   // Reset pickup
   const resetPickup = useCallback(() => {
     setPickupConfirmed(false);
+    setPickupEditing(false);
     setDropoff("");
     setDropoffInput("");
     setDropoffCoords(null);
@@ -248,6 +256,57 @@ function BookRideSection() {
     setRiderRouteCoords(undefined);
     setRouteEstimate(null);
   }, []);
+
+  // Pickup search
+  const fetchPickupSuggestions = useCallback(async (query: string) => {
+    if (!mapboxToken || query.length < 2) { setPickupSuggestions([]); return; }
+    try {
+      const localMatches = searchLandmarks(query, 5).map((lm) => ({
+        place_name: lm.context ? `${lm.name}, ${lm.context}` : lm.name,
+        center: [lm.lng, lm.lat] as [number, number],
+        isLandmark: true,
+      }));
+      const res = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${mapboxToken}&limit=5&types=address,poi,place,locality,neighborhood,district&country=PH&bbox=121.8,10.4,123.2,12.0&proximity=122.5654,10.7202&language=en`
+      );
+      const data = await res.json();
+      const mapboxResults = (data.features || []).map((f: any) => ({
+        place_name: f.place_name,
+        center: f.center,
+        isLandmark: false,
+      }));
+      const localNames = new Set(localMatches.map((l) => l.place_name.split(",")[0].trim().toLowerCase()));
+      const filtered = mapboxResults.filter(
+        (r: any) => !localNames.has(r.place_name.split(",")[0].trim().toLowerCase())
+      );
+      setPickupSuggestions([...localMatches, ...filtered].slice(0, 8));
+    } catch { setPickupSuggestions([]); }
+  }, [mapboxToken]);
+
+  const handlePickupInputChange = useCallback((value: string) => {
+    setPickupInput(value);
+    setPickupEditing(true);
+    setShowPickupSuggestions(true);
+    if (pickupDebounceRef.current) clearTimeout(pickupDebounceRef.current);
+    pickupDebounceRef.current = setTimeout(() => fetchPickupSuggestions(value), 300);
+  }, [fetchPickupSuggestions]);
+
+  const selectPickupSuggestion = useCallback((s: SearchSuggestion) => {
+    setPickupInput(s.place_name);
+    setPickup(s.place_name);
+    setPickupCoords([s.center[0], s.center[1]]);
+    setPickupSuggestions([]);
+    setShowPickupSuggestions(false);
+    setPickupEditing(false);
+    setPickupConfirmed(true);
+    setGpsStatus("success");
+    // Fly map to selected location
+    mapInstanceRef.current?.flyTo({ center: s.center, zoom: 15, duration: 800 });
+    if (zones?.length) {
+      const found = zones.find(z => s.place_name.toLowerCase().includes(z.name.toLowerCase()));
+      setMatchedZone(found || null);
+    }
+  }, [zones]);
 
   // Destination search
   const fetchSuggestions = useCallback(async (query: string) => {
@@ -519,31 +578,47 @@ function BookRideSection() {
               <p className="text-sm font-bold text-foreground mb-3">Where to?</p>
 
               {/* Pickup row */}
-              <div className="flex items-center gap-3 mb-2">
+              <div className="relative flex items-center gap-3 mb-2">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
                   <div className="h-2.5 w-2.5 rounded-full bg-primary" />
                 </div>
-                <div
-                  className="flex-1 min-w-0 rounded-full bg-secondary/60 px-4 py-2.5 cursor-pointer"
-                  onClick={pickupConfirmed ? resetPickup : undefined}
-                >
-                  {gpsStatus === "detecting" && !pickupConfirmed ? (
+                <div className="flex-1 min-w-0 rounded-full bg-secondary/60 px-4 py-2.5">
+                  {pickupConfirmed && !pickupEditing ? (
+                    <p
+                      className="truncate text-xs font-medium text-foreground cursor-pointer"
+                      onClick={resetPickup}
+                    >
+                      {pickup || "Set pickup"}
+                    </p>
+                  ) : gpsStatus === "detecting" && !pickupInput ? (
                     <div className="flex items-center gap-2">
                       <Loader2 className="h-3 w-3 animate-spin text-primary" />
-                      <span className="text-xs text-muted-foreground">Detecting your location...</span>
-                    </div>
-                  ) : gpsStatus === "failed" && !pickup && !pickupConfirmed ? (
-                    <div className="flex items-center gap-2">
-                      <WifiOff className="h-3 w-3 text-destructive" />
-                      <span className="text-xs text-muted-foreground">Move map to set pickup</span>
+                      <Input
+                        value={pickupInput}
+                        onChange={(e) => handlePickupInputChange(e.target.value)}
+                        onFocus={() => { if (pickupSuggestions.length) setShowPickupSuggestions(true); }}
+                        onBlur={() => setTimeout(() => setShowPickupSuggestions(false), 200)}
+                        placeholder="Detecting... or type pickup"
+                        className="h-auto border-0 bg-transparent p-0 text-xs font-medium text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none"
+                      />
                     </div>
                   ) : (
-                    <p className="truncate text-xs font-medium text-foreground">
-                      {pickup || "Move map to set pickup"}
-                    </p>
+                    <Input
+                      value={pickupInput}
+                      onChange={(e) => handlePickupInputChange(e.target.value)}
+                      onFocus={() => { if (pickupSuggestions.length) setShowPickupSuggestions(true); }}
+                      onBlur={() => setTimeout(() => setShowPickupSuggestions(false), 200)}
+                      placeholder="Search or move map for pickup"
+                      className="h-auto border-0 bg-transparent p-0 text-xs font-medium text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none"
+                    />
                   )}
                 </div>
-                {!pickupConfirmed ? (
+                {pickupInput && !pickupConfirmed && (
+                  <button onClick={() => { setPickupInput(""); setPickup(""); setPickupCoords(null); setPickupSuggestions([]); setPickupEditing(false); }} className="text-muted-foreground shrink-0">
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+                {!pickupConfirmed && !pickupEditing ? (
                   <button
                     onClick={confirmPickup}
                     disabled={!pickupCoords || !pickup || pickup === "Locating address..."}
@@ -552,12 +627,38 @@ function BookRideSection() {
                     <Crosshair className="h-3 w-3" />
                     Pin
                   </button>
-                ) : (
+                ) : pickupConfirmed ? (
                   <button onClick={resetPickup} className="shrink-0 text-[10px] font-medium text-primary">
                     Change
                   </button>
-                )}
+                ) : null}
               </div>
+
+              {/* Pickup suggestions dropdown */}
+              <AnimatePresence>
+                {showPickupSuggestions && pickupSuggestions.length > 0 && (
+                  <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
+                    className="absolute left-0 right-0 z-50 mx-4 overflow-hidden rounded-xl border border-border bg-card shadow-xl max-h-56 overflow-y-auto"
+                    style={{ top: "auto" }}
+                  >
+                    {pickupSuggestions.map((s, i) => (
+                      <button
+                        key={`pickup-${i}`}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => selectPickupSuggestion(s)}
+                        className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-secondary border-b border-border last:border-0"
+                      >
+                        {s.isLandmark ? (
+                          <Star className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                        ) : (
+                          <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                        )}
+                        <span className="text-xs text-foreground line-clamp-2">{s.place_name}</span>
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Destination row */}
               <div className="relative flex items-center gap-3">
