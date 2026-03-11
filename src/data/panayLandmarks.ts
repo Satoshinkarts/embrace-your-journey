@@ -17,7 +17,13 @@ export type LandmarkCategory =
   | "subdivision"
   | "barangay"
   | "school"
-  | "road";
+  | "road"
+  | "market"
+  | "restaurant"
+  | "hotel"
+  | "park"
+  | "bank"
+  | "gasstation";
 
 export interface Landmark {
   name: string;
@@ -41,6 +47,11 @@ export const PANAY_LANDMARKS: Landmark[] = [
   { name: "Gaisano Capital Pavia", category: "mall", lng: 122.5460, lat: 10.7750, aliases: ["gaisano pavia", "gaisano capital"], context: "Pavia, Iloilo" },
   { name: "Iloilo Supermart", category: "mall", lng: 122.5650, lat: 10.6960, aliases: ["supermart"], context: "City Proper, Iloilo City" },
   { name: "GT Town Center", category: "mall", lng: 122.5520, lat: 10.7050, aliases: ["gt town", "gt mall"], context: "Mandurriao, Iloilo City" },
+  { name: "Plazuela de Iloilo", category: "mall", lng: 122.5450, lat: 10.7020, aliases: ["plazuela"], context: "Mandurriao, Iloilo City" },
+  { name: "Festive Walk Parade", category: "mall", lng: 122.5530, lat: 10.7192, aliases: ["festive walk parade"], context: "Mandurriao, Iloilo City" },
+  { name: "SM Strata", category: "mall", lng: 122.5690, lat: 10.7135, aliases: ["sm strata", "strata"], context: "Mandurriao, Iloilo City" },
+  { name: "i1 Building Megaworld", category: "mall", lng: 122.5536, lat: 10.7185, aliases: ["i1 building", "i1"], context: "Mandurriao, Iloilo City" },
+  { name: "Gaisano Capital Oton", category: "mall", lng: 122.4810, lat: 10.6940, aliases: ["gaisano oton"], context: "Oton, Iloilo" },
 
   // ══════════════════════════════════════════════════════════════
   //  BUSINESS & COMMERCIAL DISTRICTS
@@ -49,9 +60,9 @@ export const PANAY_LANDMARKS: Landmark[] = [
   { name: "Megaworld Boulevard", category: "commercial", lng: 122.5530, lat: 10.7195, aliases: ["megaworld blvd", "megaworld"], context: "Mandurriao, Iloilo City" },
   { name: "Smallville Complex", category: "commercial", lng: 122.5600, lat: 10.7168, aliases: ["smallville"], context: "Mandurriao, Iloilo City" },
   { name: "Atria Park District", category: "commercial", lng: 122.5598, lat: 10.7140, aliases: ["atria"], context: "Mandurriao, Iloilo City" },
-  { name: "Diversion Road", category: "road", lng: 122.5550, lat: 10.7100, aliases: ["diversion", "benigno aquino ave"], context: "Mandurriao, Iloilo City" },
-  { name: "Plazuela de Iloilo", category: "commercial", lng: 122.5450, lat: 10.7020, aliases: ["plazuela"], context: "Mandurriao, Iloilo City" },
   { name: "The Avenue Iloilo", category: "commercial", lng: 122.5595, lat: 10.7155, aliases: ["the avenue"], context: "Mandurriao, Iloilo City" },
+  { name: "Diversion Road", category: "road", lng: 122.5550, lat: 10.7100, aliases: ["diversion", "benigno aquino ave"], context: "Mandurriao, Iloilo City" },
+  { name: "Iloilo IT Park", category: "commercial", lng: 122.5540, lat: 10.7205, aliases: ["it park", "iloilo it"], context: "Mandurriao, Iloilo City" },
 
   // ══════════════════════════════════════════════════════════════
   //  GOVERNMENT BUILDINGS
@@ -63,6 +74,14 @@ export const PANAY_LANDMARKS: Landmark[] = [
   { name: "Pavia Municipal Hall", category: "government", lng: 122.5440, lat: 10.7730, aliases: ["pavia town hall", "pavia municipal"], context: "Pavia, Iloilo" },
   { name: "Oton Municipal Hall", category: "government", lng: 122.4800, lat: 10.6930, aliases: ["oton town hall"], context: "Oton, Iloilo" },
   { name: "Santa Barbara Municipal Hall", category: "government", lng: 122.5310, lat: 10.8210, aliases: ["sta barbara town hall"], context: "Santa Barbara, Iloilo" },
+  { name: "Leganes Municipal Hall", category: "government", lng: 122.5680, lat: 10.7860, aliases: ["leganes town hall"], context: "Leganes, Iloilo" },
+  { name: "SSS Iloilo", category: "government", lng: 122.5640, lat: 10.6965, aliases: ["sss"], context: "City Proper, Iloilo City" },
+  { name: "PhilHealth Iloilo", category: "government", lng: 122.5630, lat: 10.6970, aliases: ["philhealth"], context: "City Proper, Iloilo City" },
+  { name: "Pag-IBIG Iloilo", category: "government", lng: 122.5635, lat: 10.6975, aliases: ["pagibig", "pag ibig", "hdmf"], context: "City Proper, Iloilo City" },
+  { name: "BIR Iloilo", category: "government", lng: 122.5650, lat: 10.6955, aliases: ["bir", "bureau of internal revenue"], context: "City Proper, Iloilo City" },
+  { name: "LTO Iloilo", category: "government", lng: 122.5580, lat: 10.7160, aliases: ["lto", "land transportation"], context: "Mandurriao, Iloilo City" },
+  { name: "NBI Iloilo", category: "government", lng: 122.5645, lat: 10.6960, aliases: ["nbi"], context: "City Proper, Iloilo City" },
+  { name: "DFA Iloilo", category: "government", lng: 122.5535, lat: 10.7190, aliases: ["dfa", "passport office"], context: "Mandurriao, Iloilo City" },
 
   // ══════════════════════════════════════════════════════════════
   //  UNIVERSITIES & SCHOOLS
@@ -82,6 +101,11 @@ export const PANAY_LANDMARKS: Landmark[] = [
   { name: "WVSU Pototan Campus", category: "university", lng: 122.6340, lat: 10.9440, aliases: ["wvsu pototan"], context: "Pototan, Iloilo" },
   { name: "Aklan State University", category: "university", lng: 122.3620, lat: 11.7120, aliases: ["asu", "aklan state"], context: "Banga, Aklan" },
   { name: "Capiz State University", category: "university", lng: 122.7520, lat: 11.5870, aliases: ["capsu"], context: "Roxas City, Capiz" },
+  { name: "Philippine Science High School WVC", category: "school", lng: 122.5420, lat: 10.7650, aliases: ["pisay", "pshs", "science high"], context: "Pavia, Iloilo" },
+  { name: "Iloilo National High School", category: "school", lng: 122.5660, lat: 10.6940, aliases: ["inhs", "national high school"], context: "City Proper, Iloilo City" },
+  { name: "Jaro National High School", category: "school", lng: 122.5705, lat: 10.7270, aliases: ["jaro nhs", "jaro national"], context: "Jaro, Iloilo City" },
+  { name: "La Paz National High School", category: "school", lng: 122.5680, lat: 10.7070, aliases: ["la paz nhs"], context: "La Paz, Iloilo City" },
+  { name: "Mandurriao National High School", category: "school", lng: 122.5550, lat: 10.7120, aliases: ["mandurriao nhs"], context: "Mandurriao, Iloilo City" },
 
   // ══════════════════════════════════════════════════════════════
   //  CHURCHES & TOURIST LANDMARKS
@@ -96,6 +120,10 @@ export const PANAY_LANDMARKS: Landmark[] = [
   { name: "Miagao Church", category: "church", lng: 122.2340, lat: 10.6450, aliases: ["miagao church", "sto tomas de villanueva"], context: "Miagao, Iloilo" },
   { name: "Tigbauan Church", category: "church", lng: 122.3760, lat: 10.6790, aliases: ["tigbauan church"], context: "Tigbauan, Iloilo" },
   { name: "Guimbal Church", category: "church", lng: 122.3210, lat: 10.6610, aliases: ["guimbal church"], context: "Guimbal, Iloilo" },
+  { name: "Pavia Church", category: "church", lng: 122.5445, lat: 10.7735, aliases: ["pavia church", "san juan bautista pavia"], context: "Pavia, Iloilo" },
+  { name: "Oton Church", category: "church", lng: 122.4805, lat: 10.6935, aliases: ["oton church"], context: "Oton, Iloilo" },
+  { name: "Jaro Belfry", category: "tourist", lng: 122.5698, lat: 10.7268, aliases: ["jaro belfry", "bell tower jaro"], context: "Jaro, Iloilo City" },
+  { name: "Calle Real", category: "tourist", lng: 122.5660, lat: 10.6948, aliases: ["calle real", "heritage district"], context: "City Proper, Iloilo City" },
 
   // ══════════════════════════════════════════════════════════════
   //  TRANSPORT HUBS
@@ -107,6 +135,7 @@ export const PANAY_LANDMARKS: Landmark[] = [
   { name: "Ceres Bus Terminal Iloilo", category: "transport", lng: 122.5483, lat: 10.7068, aliases: ["ceres iloilo", "ceres terminal"], context: "Jaro, Iloilo City" },
   { name: "Molo Terminal", category: "transport", lng: 122.5490, lat: 10.6940, aliases: ["molo terminal", "molo jeepney"], context: "Molo, Iloilo City" },
   { name: "Super Ferry Terminal", category: "transport", lng: 122.5695, lat: 10.6895, aliases: ["super ferry", "fastcraft terminal"], context: "City Proper, Iloilo City" },
+  { name: "Ungka Terminal", category: "transport", lng: 122.5495, lat: 10.7410, aliases: ["ungka terminal", "ungka jeepney"], context: "Pavia, Iloilo" },
 
   // ══════════════════════════════════════════════════════════════
   //  HOSPITALS & MEDICAL
@@ -121,6 +150,7 @@ export const PANAY_LANDMARKS: Landmark[] = [
   { name: "QualiMed Hospital Pavia", category: "hospital", lng: 122.5450, lat: 10.7700, aliases: ["qualimed pavia"], context: "Pavia, Iloilo" },
   { name: "Medicus Medical Center", category: "hospital", lng: 122.5600, lat: 10.7160, aliases: ["medicus"], context: "Mandurriao, Iloilo City" },
   { name: "Riverside Medical Center", category: "hospital", lng: 122.5680, lat: 10.6960, aliases: ["riverside hospital"], context: "City Proper, Iloilo City" },
+  { name: "Allegiance Health", category: "hospital", lng: 122.5530, lat: 10.7180, aliases: ["allegiance"], context: "Mandurriao, Iloilo City" },
 
   // ══════════════════════════════════════════════════════════════
   //  SUBDIVISIONS & RESIDENTIAL AREAS
@@ -129,7 +159,7 @@ export const PANAY_LANDMARKS: Landmark[] = [
   { name: "Green Meadows Subdivision", category: "subdivision", lng: 122.5580, lat: 10.7250, aliases: ["green meadows"], context: "Jaro, Iloilo City" },
   { name: "Monticello Villas", category: "subdivision", lng: 122.5560, lat: 10.7230, aliases: ["monticello"], context: "Jaro, Iloilo City" },
   { name: "Parc Regency Residences", category: "subdivision", lng: 122.5540, lat: 10.7210, aliases: ["parc regency"], context: "Mandurriao, Iloilo City" },
-  { name: "Savannah Subdivision", category: "subdivision", lng: 122.5550, lat: 10.7300, aliases: ["savannah"], context: "Jaro, Iloilo City" },
+  { name: "Savannah Subdivision", category: "subdivision", lng: 122.5550, lat: 10.7300, aliases: ["savannah", "savannah iloilo"], context: "Jaro, Iloilo City" },
   { name: "Villa Arevalo Heights", category: "subdivision", lng: 122.5370, lat: 10.6870, aliases: ["arevalo heights"], context: "Arevalo, Iloilo City" },
   { name: "Gentry Manor", category: "subdivision", lng: 122.5610, lat: 10.7220, aliases: ["gentry"], context: "Mandurriao, Iloilo City" },
   { name: "Sta. Cruz Village", category: "subdivision", lng: 122.5590, lat: 10.7240, aliases: ["sta cruz village", "santa cruz village"], context: "Jaro, Iloilo City" },
@@ -139,6 +169,19 @@ export const PANAY_LANDMARKS: Landmark[] = [
   { name: "Balantang Heights", category: "subdivision", lng: 122.5530, lat: 10.7060, aliases: ["balantang heights"], context: "Jaro, Iloilo City" },
   { name: "North Forbes Iloilo", category: "subdivision", lng: 122.5620, lat: 10.7200, aliases: ["north forbes"], context: "Mandurriao, Iloilo City" },
   { name: "Camella Iloilo", category: "subdivision", lng: 122.5460, lat: 10.7600, aliases: ["camella"], context: "Pavia, Iloilo" },
+  { name: "Avida Settings Iloilo", category: "subdivision", lng: 122.5525, lat: 10.7270, aliases: ["avida settings", "avida iloilo", "avida"], context: "Jaro, Iloilo City" },
+  { name: "Avida Woodhill Settings Jaro", category: "subdivision", lng: 122.5540, lat: 10.7285, aliases: ["avida woodhill", "woodhill settings", "avida jaro"], context: "Jaro, Iloilo City" },
+  { name: "Avida Verra Settings Iloilo", category: "subdivision", lng: 122.5550, lat: 10.7260, aliases: ["avida verra", "verra settings"], context: "Jaro, Iloilo City" },
+  { name: "South Point Subdivision", category: "subdivision", lng: 122.5480, lat: 10.6980, aliases: ["south point"], context: "Molo, Iloilo City" },
+  { name: "La Paz Village", category: "subdivision", lng: 122.5690, lat: 10.7090, aliases: ["la paz village"], context: "La Paz, Iloilo City" },
+  { name: "San Jose Village Jaro", category: "subdivision", lng: 122.5700, lat: 10.7310, aliases: ["san jose village"], context: "Jaro, Iloilo City" },
+  { name: "Villa Esperanza Jaro", category: "subdivision", lng: 122.5680, lat: 10.7340, aliases: ["villa esperanza"], context: "Jaro, Iloilo City" },
+  { name: "Quintin Salas Subdivision", category: "subdivision", lng: 122.5660, lat: 10.7240, aliases: ["quintin salas subd"], context: "Jaro, Iloilo City" },
+  { name: "Villa Cristina Subdivision", category: "subdivision", lng: 122.5590, lat: 10.7180, aliases: ["villa cristina"], context: "Mandurriao, Iloilo City" },
+  { name: "Metropolis Subdivision", category: "subdivision", lng: 122.5510, lat: 10.7080, aliases: ["metropolis"], context: "Mandurriao, Iloilo City" },
+  { name: "Tierra Alta Subdivision", category: "subdivision", lng: 122.5545, lat: 10.7310, aliases: ["tierra alta"], context: "Jaro, Iloilo City" },
+  { name: "Nuvali Iloilo", category: "subdivision", lng: 122.5500, lat: 10.7350, aliases: ["nuvali"], context: "Jaro, Iloilo City" },
+  { name: "Pueblo de Oro Iloilo", category: "subdivision", lng: 122.5520, lat: 10.7280, aliases: ["pueblo de oro"], context: "Mandurriao, Iloilo City" },
   // — Pavia —
   { name: "Lumina Iloilo", category: "subdivision", lng: 122.5410, lat: 10.7680, aliases: ["lumina", "lumina pavia"], context: "Pavia, Iloilo" },
   { name: "Deca Homes Pavia", category: "subdivision", lng: 122.5390, lat: 10.7720, aliases: ["deca homes", "deca pavia"], context: "Pavia, Iloilo" },
@@ -146,10 +189,69 @@ export const PANAY_LANDMARKS: Landmark[] = [
   { name: "Lessandra Pavia", category: "subdivision", lng: 122.5450, lat: 10.7740, aliases: ["lessandra"], context: "Pavia, Iloilo" },
   { name: "Aldea del Sol Pavia", category: "subdivision", lng: 122.5400, lat: 10.7800, aliases: ["aldea del sol"], context: "Pavia, Iloilo" },
   { name: "Bria Homes Pavia", category: "subdivision", lng: 122.5380, lat: 10.7710, aliases: ["bria pavia", "bria homes"], context: "Pavia, Iloilo" },
+  { name: "PHirst Park Homes Pavia", category: "subdivision", lng: 122.5430, lat: 10.7690, aliases: ["phirst park", "phirst pavia"], context: "Pavia, Iloilo" },
+  { name: "Camella Pavia", category: "subdivision", lng: 122.5440, lat: 10.7650, aliases: ["camella pavia"], context: "Pavia, Iloilo" },
+  { name: "Avida Averdeen Estates Pavia", category: "subdivision", lng: 122.5415, lat: 10.7730, aliases: ["avida pavia", "averdeen estates", "averdeen"], context: "Pavia, Iloilo" },
   // — Oton —
   { name: "Savannah Subdivision Oton", category: "subdivision", lng: 122.4780, lat: 10.6920, aliases: ["savannah oton"], context: "Oton, Iloilo" },
+  { name: "Camella Oton", category: "subdivision", lng: 122.4820, lat: 10.6950, aliases: ["camella oton"], context: "Oton, Iloilo" },
   // — Santa Barbara —
   { name: "Camella Savannah Iloilo", category: "subdivision", lng: 122.5280, lat: 10.8150, aliases: ["camella savannah"], context: "Santa Barbara, Iloilo" },
+
+  // ══════════════════════════════════════════════════════════════
+  //  MARKETS & FOOD
+  // ══════════════════════════════════════════════════════════════
+  { name: "La Paz Public Market", category: "market", lng: 122.5695, lat: 10.7108, aliases: ["la paz market", "la paz batchoy market"], context: "La Paz, Iloilo City" },
+  { name: "Jaro Public Market", category: "market", lng: 122.5698, lat: 10.7260, aliases: ["jaro market"], context: "Jaro, Iloilo City" },
+  { name: "Mandurriao Public Market", category: "market", lng: 122.5560, lat: 10.7140, aliases: ["mandurriao market"], context: "Mandurriao, Iloilo City" },
+  { name: "Molo Public Market", category: "market", lng: 122.5495, lat: 10.6950, aliases: ["molo market"], context: "Molo, Iloilo City" },
+  { name: "City Proper Public Market", category: "market", lng: 122.5660, lat: 10.6940, aliases: ["central market", "city market"], context: "City Proper, Iloilo City" },
+  { name: "Pavia Public Market", category: "market", lng: 122.5445, lat: 10.7740, aliases: ["pavia market"], context: "Pavia, Iloilo" },
+  { name: "Oton Public Market", category: "market", lng: 122.4800, lat: 10.6925, aliases: ["oton market"], context: "Oton, Iloilo" },
+  { name: "Deco's La Paz Batchoy", category: "restaurant", lng: 122.5690, lat: 10.7105, aliases: ["decos", "deco batchoy", "la paz batchoy"], context: "La Paz, Iloilo City" },
+  { name: "Ted's La Paz Batchoy", category: "restaurant", lng: 122.5696, lat: 10.7112, aliases: ["teds", "ted batchoy"], context: "La Paz, Iloilo City" },
+  { name: "Netong's Original La Paz Batchoy", category: "restaurant", lng: 122.5693, lat: 10.7108, aliases: ["netongs", "netong batchoy"], context: "La Paz, Iloilo City" },
+  { name: "Tatoy's Manokan & Seafood", category: "restaurant", lng: 122.5330, lat: 10.6830, aliases: ["tatoys", "tatoy manokan"], context: "Arevalo, Iloilo City" },
+  { name: "Breakthrough Restaurant", category: "restaurant", lng: 122.5700, lat: 10.7100, aliases: ["breakthrough"], context: "La Paz, Iloilo City" },
+  { name: "Afrique Restaurant", category: "restaurant", lng: 122.5595, lat: 10.7165, aliases: ["afrique"], context: "Mandurriao, Iloilo City" },
+  { name: "Farm to Table Iloilo", category: "restaurant", lng: 122.5535, lat: 10.7195, aliases: ["farm to table"], context: "Mandurriao, Iloilo City" },
+  { name: "Iloilo Esplanade BBQ Strip", category: "restaurant", lng: 122.5678, lat: 10.6918, aliases: ["esplanade bbq", "bbq strip"], context: "City Proper, Iloilo City" },
+
+  // ══════════════════════════════════════════════════════════════
+  //  HOTELS & ACCOMMODATIONS
+  // ══════════════════════════════════════════════════════════════
+  { name: "Richmonde Hotel Iloilo", category: "hotel", lng: 122.5535, lat: 10.7188, aliases: ["richmonde"], context: "Mandurriao, Iloilo City" },
+  { name: "Courtyard by Marriott Iloilo", category: "hotel", lng: 122.5538, lat: 10.7192, aliases: ["marriott", "courtyard marriott"], context: "Mandurriao, Iloilo City" },
+  { name: "Seda Atria", category: "hotel", lng: 122.5598, lat: 10.7145, aliases: ["seda atria", "seda hotel"], context: "Mandurriao, Iloilo City" },
+  { name: "Hotel del Rio", category: "hotel", lng: 122.5670, lat: 10.6935, aliases: ["hotel del rio", "del rio"], context: "City Proper, Iloilo City" },
+  { name: "Iloilo Grand Hotel", category: "hotel", lng: 122.5665, lat: 10.6940, aliases: ["grand hotel"], context: "City Proper, Iloilo City" },
+  { name: "Go Hotels Iloilo", category: "hotel", lng: 122.5690, lat: 10.7130, aliases: ["go hotels", "go hotel"], context: "Mandurriao, Iloilo City" },
+  { name: "Circle In Hotel", category: "hotel", lng: 122.5605, lat: 10.7170, aliases: ["circle in"], context: "Mandurriao, Iloilo City" },
+
+  // ══════════════════════════════════════════════════════════════
+  //  PARKS & RECREATION
+  // ══════════════════════════════════════════════════════════════
+  { name: "Iloilo River Esplanade", category: "park", lng: 122.5680, lat: 10.6920, aliases: ["river esplanade", "esplanade park"], context: "City Proper, Iloilo City" },
+  { name: "Jaro Plaza", category: "park", lng: 122.5700, lat: 10.7262, aliases: ["jaro plaza", "plaza jaro"], context: "Jaro, Iloilo City" },
+  { name: "Sunburst Park", category: "park", lng: 122.5540, lat: 10.7200, aliases: ["sunburst", "sunburst park"], context: "Mandurriao, Iloilo City" },
+  { name: "Freedom Grandstand", category: "park", lng: 122.5630, lat: 10.6985, aliases: ["grandstand", "freedom park"], context: "City Proper, Iloilo City" },
+
+  // ══════════════════════════════════════════════════════════════
+  //  BANKS & FINANCIAL
+  // ══════════════════════════════════════════════════════════════
+  { name: "BDO Iloilo Main", category: "bank", lng: 122.5655, lat: 10.6945, aliases: ["bdo", "bdo main"], context: "City Proper, Iloilo City" },
+  { name: "BPI Iloilo", category: "bank", lng: 122.5650, lat: 10.6950, aliases: ["bpi", "bpi iloilo"], context: "City Proper, Iloilo City" },
+  { name: "Metrobank Iloilo", category: "bank", lng: 122.5660, lat: 10.6948, aliases: ["metrobank"], context: "City Proper, Iloilo City" },
+  { name: "Landbank Iloilo", category: "bank", lng: 122.5640, lat: 10.6955, aliases: ["landbank", "land bank"], context: "City Proper, Iloilo City" },
+
+  // ══════════════════════════════════════════════════════════════
+  //  GAS STATIONS
+  // ══════════════════════════════════════════════════════════════
+  { name: "Shell Mandurriao", category: "gasstation", lng: 122.5570, lat: 10.7130, aliases: ["shell mandurriao", "shell diversion"], context: "Mandurriao, Iloilo City" },
+  { name: "Petron Jaro", category: "gasstation", lng: 122.5700, lat: 10.7295, aliases: ["petron jaro"], context: "Jaro, Iloilo City" },
+  { name: "Caltex Diversion Road", category: "gasstation", lng: 122.5545, lat: 10.7095, aliases: ["caltex diversion", "caltex mandurriao"], context: "Mandurriao, Iloilo City" },
+  { name: "Shell Pavia", category: "gasstation", lng: 122.5455, lat: 10.7745, aliases: ["shell pavia"], context: "Pavia, Iloilo" },
+  { name: "Petron Ungka", category: "gasstation", lng: 122.5500, lat: 10.7400, aliases: ["petron ungka"], context: "Pavia, Iloilo" },
 
   // ══════════════════════════════════════════════════════════════
   //  BARANGAYS — ILOILO CITY
@@ -164,6 +266,10 @@ export const PANAY_LANDMARKS: Landmark[] = [
   { name: "Brgy. Javellana, Jaro", category: "barangay", lng: 122.5740, lat: 10.7320, aliases: ["javellana jaro"], context: "Jaro, Iloilo City" },
   { name: "Brgy. Quintin Salas, Jaro", category: "barangay", lng: 122.5660, lat: 10.7240, aliases: ["quintin salas"], context: "Jaro, Iloilo City" },
   { name: "Brgy. Simon Ledesma, Jaro", category: "barangay", lng: 122.5620, lat: 10.7260, aliases: ["simon ledesma"], context: "Jaro, Iloilo City" },
+  { name: "Brgy. Buntatala, Jaro", category: "barangay", lng: 122.5750, lat: 10.7380, aliases: ["buntatala"], context: "Jaro, Iloilo City" },
+  { name: "Brgy. Tacas, Jaro", category: "barangay", lng: 122.5650, lat: 10.7350, aliases: ["tacas"], context: "Jaro, Iloilo City" },
+  { name: "Brgy. Cuartero, Jaro", category: "barangay", lng: 122.5670, lat: 10.7360, aliases: ["cuartero jaro"], context: "Jaro, Iloilo City" },
+  { name: "Brgy. Camalig, Jaro", category: "barangay", lng: 122.5680, lat: 10.7330, aliases: ["camalig jaro"], context: "Jaro, Iloilo City" },
   // Mandurriao district
   { name: "Brgy. Bolilao, Mandurriao", category: "barangay", lng: 122.5590, lat: 10.7130, aliases: ["bolilao"], context: "Mandurriao, Iloilo City" },
   { name: "Brgy. Calahunan, Mandurriao", category: "barangay", lng: 122.5510, lat: 10.7100, aliases: ["calahunan"], context: "Mandurriao, Iloilo City" },
@@ -171,34 +277,65 @@ export const PANAY_LANDMARKS: Landmark[] = [
   { name: "Brgy. Q. Abeto, Mandurriao", category: "barangay", lng: 122.5520, lat: 10.7120, aliases: ["q abeto", "quintin abeto"], context: "Mandurriao, Iloilo City" },
   { name: "Brgy. Navais, Mandurriao", category: "barangay", lng: 122.5540, lat: 10.7140, aliases: ["navais"], context: "Mandurriao, Iloilo City" },
   { name: "Brgy. Oñate de Leon, Mandurriao", category: "barangay", lng: 122.5575, lat: 10.7190, aliases: ["onate de leon"], context: "Mandurriao, Iloilo City" },
+  { name: "Brgy. Tabucan, Mandurriao", category: "barangay", lng: 122.5500, lat: 10.7090, aliases: ["tabucan"], context: "Mandurriao, Iloilo City" },
   // La Paz district
   { name: "Brgy. Baldoza, La Paz", category: "barangay", lng: 122.5680, lat: 10.7100, aliases: ["baldoza"], context: "La Paz, Iloilo City" },
   { name: "Brgy. Ticud, La Paz", category: "barangay", lng: 122.5700, lat: 10.7080, aliases: ["ticud"], context: "La Paz, Iloilo City" },
   { name: "Brgy. Rizal Estanzuela, La Paz", category: "barangay", lng: 122.5660, lat: 10.7050, aliases: ["rizal estanzuela", "estanzuela"], context: "La Paz, Iloilo City" },
   { name: "Brgy. San Isidro, La Paz", category: "barangay", lng: 122.5720, lat: 10.7060, aliases: ["san isidro la paz"], context: "La Paz, Iloilo City" },
+  { name: "Brgy. Tabuc Suba, La Paz", category: "barangay", lng: 122.5670, lat: 10.7040, aliases: ["tabuc suba la paz"], context: "La Paz, Iloilo City" },
+  { name: "Brgy. Jereos, La Paz", category: "barangay", lng: 122.5710, lat: 10.7090, aliases: ["jereos"], context: "La Paz, Iloilo City" },
   // City Proper
   { name: "Brgy. Tanza, City Proper", category: "barangay", lng: 122.5630, lat: 10.6940, aliases: ["tanza"], context: "City Proper, Iloilo City" },
   { name: "Brgy. Mabini-Delgado, City Proper", category: "barangay", lng: 122.5650, lat: 10.6950, aliases: ["mabini delgado"], context: "City Proper, Iloilo City" },
   { name: "Brgy. Ortiz, City Proper", category: "barangay", lng: 122.5640, lat: 10.6920, aliases: ["ortiz"], context: "City Proper, Iloilo City" },
+  { name: "Brgy. Hipodromo, City Proper", category: "barangay", lng: 122.5630, lat: 10.6960, aliases: ["hipodromo"], context: "City Proper, Iloilo City" },
+  { name: "Brgy. Bonifacio Tanza", category: "barangay", lng: 122.5625, lat: 10.6935, aliases: ["bonifacio tanza"], context: "City Proper, Iloilo City" },
   // Molo district
   { name: "Brgy. East Timawa, Molo", category: "barangay", lng: 122.5510, lat: 10.6970, aliases: ["east timawa"], context: "Molo, Iloilo City" },
   { name: "Brgy. West Timawa, Molo", category: "barangay", lng: 122.5480, lat: 10.6960, aliases: ["west timawa"], context: "Molo, Iloilo City" },
   { name: "Brgy. San Pedro, Molo", category: "barangay", lng: 122.5490, lat: 10.6930, aliases: ["san pedro molo"], context: "Molo, Iloilo City" },
+  { name: "Brgy. North Fundidor, Molo", category: "barangay", lng: 122.5485, lat: 10.6980, aliases: ["north fundidor"], context: "Molo, Iloilo City" },
+  { name: "Brgy. Molo Boulevard", category: "barangay", lng: 122.5475, lat: 10.6940, aliases: ["molo blvd", "molo boulevard"], context: "Molo, Iloilo City" },
   // Arevalo district
   { name: "Brgy. Sto. Niño Norte, Arevalo", category: "barangay", lng: 122.5340, lat: 10.6860, aliases: ["sto nino norte arevalo", "santo nino norte"], context: "Arevalo, Iloilo City" },
   { name: "Brgy. Sto. Niño Sur, Arevalo", category: "barangay", lng: 122.5330, lat: 10.6840, aliases: ["sto nino sur arevalo", "santo nino sur"], context: "Arevalo, Iloilo City" },
   { name: "Brgy. Calaparan, Arevalo", category: "barangay", lng: 122.5360, lat: 10.6880, aliases: ["calaparan"], context: "Arevalo, Iloilo City" },
+  { name: "Brgy. Yulo Drive, Arevalo", category: "barangay", lng: 122.5345, lat: 10.6850, aliases: ["yulo drive"], context: "Arevalo, Iloilo City" },
 
   // ══════════════════════════════════════════════════════════════
   //  BARANGAYS — PAVIA
   // ══════════════════════════════════════════════════════════════
-  { name: "Brgy. Ungka I, Pavia", category: "barangay", lng: 122.5500, lat: 10.7400, aliases: ["ungka 1", "ungka i"], context: "Pavia, Iloilo" },
+  { name: "Brgy. Ungka I, Pavia", category: "barangay", lng: 122.5500, lat: 10.7400, aliases: ["ungka 1", "ungka i", "ungka"], context: "Pavia, Iloilo" },
   { name: "Brgy. Ungka II, Pavia", category: "barangay", lng: 122.5490, lat: 10.7420, aliases: ["ungka 2", "ungka ii"], context: "Pavia, Iloilo" },
   { name: "Brgy. Anilao, Pavia", category: "barangay", lng: 122.5440, lat: 10.7680, aliases: ["anilao pavia"], context: "Pavia, Iloilo" },
   { name: "Brgy. Aganan, Pavia", category: "barangay", lng: 122.5460, lat: 10.7620, aliases: ["aganan"], context: "Pavia, Iloilo" },
   { name: "Brgy. Pandac, Pavia", category: "barangay", lng: 122.5430, lat: 10.7780, aliases: ["pandac"], context: "Pavia, Iloilo" },
   { name: "Brgy. Balabag, Pavia", category: "barangay", lng: 122.5410, lat: 10.7650, aliases: ["balabag pavia"], context: "Pavia, Iloilo" },
   { name: "Brgy. Traciana, Pavia", category: "barangay", lng: 122.5400, lat: 10.7700, aliases: ["traciana"], context: "Pavia, Iloilo" },
+  { name: "Brgy. Amparo, Pavia", category: "barangay", lng: 122.5420, lat: 10.7640, aliases: ["amparo pavia"], context: "Pavia, Iloilo" },
+  { name: "Brgy. Tigum, Pavia", category: "barangay", lng: 122.5470, lat: 10.7560, aliases: ["tigum pavia"], context: "Pavia, Iloilo" },
+
+  // ══════════════════════════════════════════════════════════════
+  //  BARANGAYS — OTON
+  // ══════════════════════════════════════════════════════════════
+  { name: "Brgy. Poblacion, Oton", category: "barangay", lng: 122.4800, lat: 10.6930, aliases: ["poblacion oton"], context: "Oton, Iloilo" },
+  { name: "Brgy. Cagbang, Oton", category: "barangay", lng: 122.4830, lat: 10.6960, aliases: ["cagbang"], context: "Oton, Iloilo" },
+  { name: "Brgy. Trapiche, Oton", category: "barangay", lng: 122.4870, lat: 10.6990, aliases: ["trapiche"], context: "Oton, Iloilo" },
+  { name: "Brgy. San Nicolas, Oton", category: "barangay", lng: 122.4780, lat: 10.6950, aliases: ["san nicolas oton"], context: "Oton, Iloilo" },
+
+  // ══════════════════════════════════════════════════════════════
+  //  BARANGAYS — LEGANES
+  // ══════════════════════════════════════════════════════════════
+  { name: "Brgy. Poblacion, Leganes", category: "barangay", lng: 122.5680, lat: 10.7860, aliases: ["poblacion leganes"], context: "Leganes, Iloilo" },
+  { name: "Brgy. Guinobatan, Leganes", category: "barangay", lng: 122.5700, lat: 10.7900, aliases: ["guinobatan"], context: "Leganes, Iloilo" },
+  { name: "Brgy. Cagamutan Norte, Leganes", category: "barangay", lng: 122.5660, lat: 10.7830, aliases: ["cagamutan norte"], context: "Leganes, Iloilo" },
+
+  // ══════════════════════════════════════════════════════════════
+  //  BARANGAYS — SANTA BARBARA
+  // ══════════════════════════════════════════════════════════════
+  { name: "Brgy. Poblacion, Santa Barbara", category: "barangay", lng: 122.5310, lat: 10.8210, aliases: ["poblacion sta barbara"], context: "Santa Barbara, Iloilo" },
+  { name: "Brgy. Buyo, Santa Barbara", category: "barangay", lng: 122.5250, lat: 10.8180, aliases: ["buyo"], context: "Santa Barbara, Iloilo" },
 
   // ══════════════════════════════════════════════════════════════
   //  MAJOR ROADS
@@ -213,6 +350,10 @@ export const PANAY_LANDMARKS: Landmark[] = [
   { name: "E. Lopez Street, Jaro", category: "road", lng: 122.5700, lat: 10.7260, aliases: ["e lopez", "e. lopez"], context: "Jaro, Iloilo City" },
   { name: "Jalandoni Street", category: "road", lng: 122.5670, lat: 10.6960, aliases: ["jalandoni"], context: "City Proper, Iloilo City" },
   { name: "Iloilo-Capiz Road", category: "road", lng: 122.5500, lat: 10.7500, aliases: ["national highway", "iloilo capiz road"], context: "Pavia, Iloilo" },
+  { name: "Quezon Street", category: "road", lng: 122.5648, lat: 10.6942, aliases: ["quezon street", "quezon st"], context: "City Proper, Iloilo City" },
+  { name: "Fuentes Street", category: "road", lng: 122.5652, lat: 10.6948, aliases: ["fuentes"], context: "City Proper, Iloilo City" },
+  { name: "Mabini Street", category: "road", lng: 122.5655, lat: 10.6952, aliases: ["mabini street"], context: "City Proper, Iloilo City" },
+  { name: "Valeria Street", category: "road", lng: 122.5658, lat: 10.6938, aliases: ["valeria"], context: "City Proper, Iloilo City" },
 
   // ══════════════════════════════════════════════════════════════
   //  PANAY ISLAND CITIES & MUNICIPALITIES
@@ -320,7 +461,9 @@ export function searchLandmarks(query: string, limit = 5): Array<Landmark & { sc
       const boosts: Record<string, number> = {
         mall: 6, transport: 5, hospital: 5, university: 4,
         subdivision: 4, government: 3, school: 3, church: 2,
-        commercial: 2, barangay: 1, tourist: 1, road: 1, city: 0,
+        commercial: 2, restaurant: 3, hotel: 2, market: 3,
+        park: 1, bank: 1, gasstation: 1,
+        barangay: 1, tourist: 1, road: 1, city: 0,
       };
       score += boosts[lm.category] || 0;
     }
