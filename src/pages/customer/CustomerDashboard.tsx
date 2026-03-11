@@ -578,31 +578,47 @@ function BookRideSection() {
               <p className="text-sm font-bold text-foreground mb-3">Where to?</p>
 
               {/* Pickup row */}
-              <div className="flex items-center gap-3 mb-2">
+              <div className="relative flex items-center gap-3 mb-2">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
                   <div className="h-2.5 w-2.5 rounded-full bg-primary" />
                 </div>
-                <div
-                  className="flex-1 min-w-0 rounded-full bg-secondary/60 px-4 py-2.5 cursor-pointer"
-                  onClick={pickupConfirmed ? resetPickup : undefined}
-                >
-                  {gpsStatus === "detecting" && !pickupConfirmed ? (
+                <div className="flex-1 min-w-0 rounded-full bg-secondary/60 px-4 py-2.5">
+                  {pickupConfirmed && !pickupEditing ? (
+                    <p
+                      className="truncate text-xs font-medium text-foreground cursor-pointer"
+                      onClick={resetPickup}
+                    >
+                      {pickup || "Set pickup"}
+                    </p>
+                  ) : gpsStatus === "detecting" && !pickupInput ? (
                     <div className="flex items-center gap-2">
                       <Loader2 className="h-3 w-3 animate-spin text-primary" />
-                      <span className="text-xs text-muted-foreground">Detecting your location...</span>
-                    </div>
-                  ) : gpsStatus === "failed" && !pickup && !pickupConfirmed ? (
-                    <div className="flex items-center gap-2">
-                      <WifiOff className="h-3 w-3 text-destructive" />
-                      <span className="text-xs text-muted-foreground">Move map to set pickup</span>
+                      <Input
+                        value={pickupInput}
+                        onChange={(e) => handlePickupInputChange(e.target.value)}
+                        onFocus={() => { if (pickupSuggestions.length) setShowPickupSuggestions(true); }}
+                        onBlur={() => setTimeout(() => setShowPickupSuggestions(false), 200)}
+                        placeholder="Detecting... or type pickup"
+                        className="h-auto border-0 bg-transparent p-0 text-xs font-medium text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none"
+                      />
                     </div>
                   ) : (
-                    <p className="truncate text-xs font-medium text-foreground">
-                      {pickup || "Move map to set pickup"}
-                    </p>
+                    <Input
+                      value={pickupInput}
+                      onChange={(e) => handlePickupInputChange(e.target.value)}
+                      onFocus={() => { if (pickupSuggestions.length) setShowPickupSuggestions(true); }}
+                      onBlur={() => setTimeout(() => setShowPickupSuggestions(false), 200)}
+                      placeholder="Search or move map for pickup"
+                      className="h-auto border-0 bg-transparent p-0 text-xs font-medium text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none"
+                    />
                   )}
                 </div>
-                {!pickupConfirmed ? (
+                {pickupInput && !pickupConfirmed && (
+                  <button onClick={() => { setPickupInput(""); setPickup(""); setPickupCoords(null); setPickupSuggestions([]); setPickupEditing(false); }} className="text-muted-foreground shrink-0">
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+                {!pickupConfirmed && !pickupEditing ? (
                   <button
                     onClick={confirmPickup}
                     disabled={!pickupCoords || !pickup || pickup === "Locating address..."}
@@ -611,12 +627,38 @@ function BookRideSection() {
                     <Crosshair className="h-3 w-3" />
                     Pin
                   </button>
-                ) : (
+                ) : pickupConfirmed ? (
                   <button onClick={resetPickup} className="shrink-0 text-[10px] font-medium text-primary">
                     Change
                   </button>
-                )}
+                ) : null}
               </div>
+
+              {/* Pickup suggestions dropdown */}
+              <AnimatePresence>
+                {showPickupSuggestions && pickupSuggestions.length > 0 && (
+                  <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
+                    className="absolute left-0 right-0 z-50 mx-4 overflow-hidden rounded-xl border border-border bg-card shadow-xl max-h-56 overflow-y-auto"
+                    style={{ top: "auto" }}
+                  >
+                    {pickupSuggestions.map((s, i) => (
+                      <button
+                        key={`pickup-${i}`}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => selectPickupSuggestion(s)}
+                        className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-secondary border-b border-border last:border-0"
+                      >
+                        {s.isLandmark ? (
+                          <Star className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                        ) : (
+                          <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                        )}
+                        <span className="text-xs text-foreground line-clamp-2">{s.place_name}</span>
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Destination row */}
               <div className="relative flex items-center gap-3">
