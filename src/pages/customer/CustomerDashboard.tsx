@@ -231,6 +231,7 @@ function BookRideSection() {
     if (mapboxToken) {
       const addr = await reverseGeocode(lng, lat, mapboxToken);
       setPickup(addr);
+      setPickupInput(addr);
       if (zones?.length) {
         const found = zones.find(z => addr.toLowerCase().includes(z.name.toLowerCase()));
         setMatchedZone(found || null);
