@@ -91,8 +91,10 @@ function BookRideSection() {
 
   // Location state
   const [pickup, setPickup] = useState("");
+  const [pickupInput, setPickupInput] = useState("");
   const [pickupCoords, setPickupCoords] = useState<[number, number] | null>(null);
   const [pickupConfirmed, setPickupConfirmed] = useState(false);
+  const [pickupEditing, setPickupEditing] = useState(false);
   const [gpsStatus, setGpsStatus] = useState<"detecting" | "success" | "failed" | "idle">("detecting");
 
   const [dropoff, setDropoff] = useState("");
@@ -104,9 +106,13 @@ function BookRideSection() {
   const [matchedZone, setMatchedZone] = useState<Zone | null>(null);
 
   // Search
-  const [suggestions, setSuggestions] = useState<Array<{ place_name: string; center: [number, number]; isLandmark?: boolean }>>([]);
+  type SearchSuggestion = { place_name: string; center: [number, number]; isLandmark?: boolean };
+  const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [pickupSuggestions, setPickupSuggestions] = useState<SearchSuggestion[]>([]);
+  const [showPickupSuggestions, setShowPickupSuggestions] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pickupDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const gpsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Ride type
