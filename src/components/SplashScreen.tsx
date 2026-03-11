@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import habalLogo from "@/assets/habal-logo.png";
+import mascotGif from "@/assets/habal-mascot.gif";
 
 export function SplashScreen({ onFinish }: { onFinish: () => void }) {
   const [phase, setPhase] = useState<"logo" | "text" | "exit">("logo");
 
   useEffect(() => {
     const t1 = setTimeout(() => setPhase("text"), 600);
-    const t2 = setTimeout(() => setPhase("exit"), 1800);
-    const t3 = setTimeout(onFinish, 2300);
+    const t2 = setTimeout(() => setPhase("exit"), 2200);
+    const t3 = setTimeout(onFinish, 2700);
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, [onFinish]);
 
@@ -22,47 +22,50 @@ export function SplashScreen({ onFinish }: { onFinish: () => void }) {
           transition={{ duration: 0.5, ease: "easeInOut" }}
           className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background"
         >
-          {/* Ambient glow */}
+          {/* Warm ambient glow */}
           <div className="pointer-events-none absolute inset-0 overflow-hidden">
             <motion.div
               initial={{ opacity: 0, scale: 0.5 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 1.2, ease: "easeOut" }}
-              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[400px] w-[400px] rounded-full bg-primary/8 blur-[120px]"
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[500px] w-[500px] rounded-full bg-primary/10 blur-[140px]"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.3 }}
+              animate={{ opacity: 0.6, scale: 1 }}
+              transition={{ duration: 1.5, ease: "easeOut", delay: 0.3 }}
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[300px] w-[300px] rounded-full bg-warning/8 blur-[100px]"
             />
           </div>
 
-          {/* Logo */}
+          {/* Mascot GIF */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.6, y: 20 }}
+            initial={{ opacity: 0, scale: 0.5, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
             className="relative z-10"
           >
-            <div className="relative">
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3, duration: 0.8 }}
-                className="absolute -inset-8 rounded-full bg-primary/10 blur-[40px]"
-              />
+            <motion.div
+              animate={{ y: [0, -6, 0] }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+            >
               <img
-                src={habalLogo}
-                alt="Habal"
-                className="relative h-24 w-24 object-contain drop-shadow-2xl"
+                src={mascotGif}
+                alt="Habal Mascot"
+                className="h-32 w-32 object-contain drop-shadow-2xl"
               />
-            </div>
+            </motion.div>
           </motion.div>
 
           {/* Text */}
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={phase === "text" ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
-            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-            className="relative z-10 mt-6 text-center"
+            initial={{ opacity: 0, y: 16 }}
+            animate={phase === "text" ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            className="relative z-10 mt-5 text-center"
           >
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Habal</h1>
-            <p className="mt-1 text-sm text-muted-foreground">One Tap Away</p>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Habal</h1>
+            <p className="mt-1.5 text-sm font-medium text-muted-foreground">Sakay na, Ilonggo! 🏍️</p>
           </motion.div>
 
           {/* Loading dots */}
