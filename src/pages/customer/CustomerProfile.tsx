@@ -323,8 +323,8 @@ function SavedLocationRow({
   const fetchSuggestions = useCallback(async (query: string) => {
     if (!mapboxToken || query.length < 2) { setSuggestions([]); return; }
     try {
-      const localMatches = searchLandmarks(query, 3).map(lm => ({
-        place_name: lm.name, center: [lm.lng, lm.lat] as [number, number], isLandmark: true,
+      const localMatches = searchLandmarks(query, 4).map(lm => ({
+        place_name: lm.context ? `${lm.name}, ${lm.context}` : lm.name, center: [lm.lng, lm.lat] as [number, number], isLandmark: true,
       }));
       const res = await fetch(
         `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${mapboxToken}&limit=5&types=address,poi,place,locality,neighborhood&country=PH&bbox=121.8,10.4,123.2,12.0&proximity=122.5654,10.7202&language=en`
