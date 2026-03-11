@@ -248,6 +248,7 @@ function BookRideSection() {
   // Reset pickup
   const resetPickup = useCallback(() => {
     setPickupConfirmed(false);
+    setPickupEditing(false);
     setDropoff("");
     setDropoffInput("");
     setDropoffCoords(null);
@@ -255,6 +256,57 @@ function BookRideSection() {
     setRiderRouteCoords(undefined);
     setRouteEstimate(null);
   }, []);
+
+  // Pickup search
+  const fetchPickupSuggestions = useCallback(async (query: string) => {
+    if (!mapboxToken || query.length < 2) { setPickupSuggestions([]); return; }
+    try {
+      const localMatches = searchLandmarks(query, 5).map((lm) => ({
+        place_name: lm.context ? `${lm.name}, ${lm.context}` : lm.name,
+        center: [lm.lng, lm.lat] as [number, number],
+        isLandmark: true,
+      }));
+      const res = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${mapboxToken}&limit=5&types=address,poi,place,locality,neighborhood,district&country=PH&bbox=121.8,10.4,123.2,12.0&proximity=122.5654,10.7202&language=en`
+      );
+      const data = await res.json();
+      const mapboxResults = (data.features || []).map((f: any) => ({
+        place_name: f.place_name,
+        center: f.center,
+        isLandmark: false,
+      }));
+      const localNames = new Set(localMatches.map((l) => l.place_name.split(",")[0].trim().toLowerCase()));
+      const filtered = mapboxResults.filter(
+        (r: any) => !localNames.has(r.place_name.split(",")[0].trim().toLowerCase())
+      );
+      setPickupSuggestions([...localMatches, ...filtered].slice(0, 8));
+    } catch { setPickupSuggestions([]); }
+  }, [mapboxToken]);
+
+  const handlePickupInputChange = useCallback((value: string) => {
+    setPickupInput(value);
+    setPickupEditing(true);
+    setShowPickupSuggestions(true);
+    if (pickupDebounceRef.current) clearTimeout(pickupDebounceRef.current);
+    pickupDebounceRef.current = setTimeout(() => fetchPickupSuggestions(value), 300);
+  }, [fetchPickupSuggestions]);
+
+  const selectPickupSuggestion = useCallback((s: SearchSuggestion) => {
+    setPickupInput(s.place_name);
+    setPickup(s.place_name);
+    setPickupCoords([s.center[0], s.center[1]]);
+    setPickupSuggestions([]);
+    setShowPickupSuggestions(false);
+    setPickupEditing(false);
+    setPickupConfirmed(true);
+    setGpsStatus("success");
+    // Fly map to selected location
+    mapInstanceRef.current?.flyTo({ center: s.center, zoom: 15, duration: 800 });
+    if (zones?.length) {
+      const found = zones.find(z => s.place_name.toLowerCase().includes(z.name.toLowerCase()));
+      setMatchedZone(found || null);
+    }
+  }, [zones]);
 
   // Destination search
   const fetchSuggestions = useCallback(async (query: string) => {
