@@ -65,6 +65,11 @@ export function CustomerWallet() {
 
 /* ─── Helpers ─── */
 async function reverseGeocode(lng: number, lat: number, token: string): Promise<string> {
+  // Check for nearby curated landmark first (within 200m)
+  const nearby = nearestLandmark(lng, lat, 0.2, ["mall", "transport", "university", "hospital", "subdivision", "government"]);
+  if (nearby) {
+    return nearby.context ? `${nearby.name}, ${nearby.context}` : nearby.name;
+  }
   try {
     const res = await fetch(
       `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${token}&limit=1&types=address,poi,place,locality,neighborhood&language=en&country=PH`
