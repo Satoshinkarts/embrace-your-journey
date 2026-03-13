@@ -28,7 +28,8 @@ export function SplashScreen({ onFinish }: { onFinish: () => void }) {
           initial={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.5, ease: "easeInOut" }}
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black"
+          className="fixed inset-0 z-[9999] bg-black"
+          style={{ width: '100vw', height: '100vh', top: 0, left: 0 }}
         >
           <video
             ref={videoRef}
@@ -37,7 +38,7 @@ export function SplashScreen({ onFinish }: { onFinish: () => void }) {
             muted
             playsInline
             onEnded={handleVideoEnd}
-            className="h-full w-full object-cover"
+            style={{ width: '100vw', height: '100vh', objectFit: 'cover' }}
           />
         </motion.div>
       ) : null}
